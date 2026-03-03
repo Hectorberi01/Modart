@@ -10,12 +10,12 @@ const _kBg = Color(0xFFF7F8FA);
 const _kTextSecondary = Color(0xFF6B7280);
 
 List<BoxShadow> _cardShadow() => [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.06),
-        blurRadius: 20,
-        offset: const Offset(0, 4),
-      ),
-    ];
+  BoxShadow(
+    color: Colors.black.withValues(alpha: 0.06),
+    blurRadius: 20,
+    offset: const Offset(0, 4),
+  ),
+];
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -183,7 +183,10 @@ class _SummaryStat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: _kTextSecondary),
+        ),
       ],
     );
   }
@@ -236,7 +239,11 @@ class _SessionRow extends StatelessWidget {
               color: _kAccent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.directions_walk_rounded, color: _kAccent, size: 22),
+            child: const Icon(
+              Icons.directions_walk_rounded,
+              color: _kAccent,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -279,7 +286,11 @@ class _SessionRow extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFD1D5DB)),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: Color(0xFFD1D5DB),
+          ),
         ],
       ),
     );
@@ -303,7 +314,11 @@ class _EmptyState extends StatelessWidget {
               borderRadius: BorderRadius.circular(22),
               boxShadow: _cardShadow(),
             ),
-            child: const Icon(Icons.history_rounded, size: 36, color: Color(0xFFD1D5DB)),
+            child: const Icon(
+              Icons.history_rounded,
+              size: 36,
+              color: Color(0xFFD1D5DB),
+            ),
           ),
           const SizedBox(height: 20),
           const Text(

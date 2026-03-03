@@ -5,18 +5,18 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'bluetooth_screen.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
-const _kAccent  = Color(0xFF2F80ED);
+const _kAccent = Color(0xFF2F80ED);
 const _kSuccess = Color(0xFF27AE60);
 const _kTextSec = Color(0xFF6B7280);
-const _kBg      = Color(0xFFF7F8FA);
+const _kBg = Color(0xFFF7F8FA);
 
 List<BoxShadow> _cardShadow() => [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.06),
-        blurRadius: 20,
-        offset: const Offset(0, 4),
-      )
-    ];
+  BoxShadow(
+    color: Colors.black.withValues(alpha: 0.06),
+    blurRadius: 20,
+    offset: const Offset(0, 4),
+  ),
+];
 
 class PositionScreen extends StatefulWidget {
   const PositionScreen({super.key});
@@ -33,12 +33,14 @@ class _PositionScreenState extends State<PositionScreen> {
   void initState() {
     super.initState();
     _connectedDevices = FlutterBluePlus.connectedDevices;
-    _connectionEventSub =
-        FlutterBluePlus.events.onConnectionStateChanged.listen((_) {
-      if (mounted) {
-        setState(() => _connectedDevices = FlutterBluePlus.connectedDevices);
-      }
-    });
+    _connectionEventSub = FlutterBluePlus.events.onConnectionStateChanged
+        .listen((_) {
+          if (mounted) {
+            setState(
+              () => _connectedDevices = FlutterBluePlus.connectedDevices,
+            );
+          }
+        });
   }
 
   @override
@@ -51,7 +53,8 @@ class _PositionScreenState extends State<PositionScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BluetoothScreen(onContinue: () => Navigator.pop(context)),
+        builder:
+            (_) => BluetoothScreen(onContinue: () => Navigator.pop(context)),
       ),
     );
   }
@@ -65,12 +68,17 @@ class _PositionScreenState extends State<PositionScreen> {
         centerTitle: true,
         title: const Text(
           'Position des Pieds',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _kPrimary),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: _kPrimary,
+          ),
         ),
       ),
-      body: _connectedDevices.isEmpty
-          ? _buildNoDeviceView()
-          : _buildPressureView(),
+      body:
+          _connectedDevices.isEmpty
+              ? _buildNoDeviceView()
+              : _buildPressureView(),
     );
   }
 
@@ -89,12 +97,20 @@ class _PositionScreenState extends State<PositionScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: _cardShadow(),
               ),
-              child: const Icon(Icons.bluetooth_disabled, size: 36, color: _kTextSec),
+              child: const Icon(
+                Icons.bluetooth_disabled,
+                size: 36,
+                color: _kTextSec,
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
               'Aucune chaussure connectée',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: _kPrimary),
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: _kPrimary,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -112,10 +128,14 @@ class _PositionScreenState extends State<PositionScreen> {
                   backgroundColor: _kPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: const Text('Connecter une chaussure',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Connecter une chaussure',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -129,10 +149,10 @@ class _PositionScreenState extends State<PositionScreen> {
     final showRight = _connectedDevices.length >= 2;
 
     // Mock data — à remplacer par les vraies données BLE
-    const double leftWeight  = 34.2;
+    const double leftWeight = 34.2;
     const double rightWeight = 35.8;
     final double total = showRight ? leftWeight + rightWeight : leftWeight;
-    final double leftPct  = leftWeight  / (leftWeight + rightWeight);
+    final double leftPct = leftWeight / (leftWeight + rightWeight);
     final double rightPct = rightWeight / (leftWeight + rightWeight);
 
     return SingleChildScrollView(
@@ -173,8 +193,7 @@ class _PositionScreenState extends State<PositionScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    if (showLeft)
-                      _FootView(label: 'Gauche', pressure: leftPct),
+                    if (showLeft) _FootView(label: 'Gauche', pressure: leftPct),
                     if (showRight)
                       _FootView(label: 'Droit', pressure: rightPct),
                   ],
@@ -184,7 +203,10 @@ class _PositionScreenState extends State<PositionScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _LegendItem(color: _kAccent.withValues(alpha: 0.8), label: 'Faible'),
+                    _LegendItem(
+                      color: _kAccent.withValues(alpha: 0.8),
+                      label: 'Faible',
+                    ),
                     const SizedBox(width: 18),
                     _LegendItem(color: const Color(0xFFF59E0B), label: 'Moyen'),
                     const SizedBox(width: 18),
@@ -245,8 +267,10 @@ class _PositionScreenState extends State<PositionScreen> {
               children: [
                 Column(
                   children: [
-                    const Text('Poids Total',
-                        style: TextStyle(color: _kTextSec, fontSize: 12)),
+                    const Text(
+                      'Poids Total',
+                      style: TextStyle(color: _kTextSec, fontSize: 12),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -263,8 +287,10 @@ class _PositionScreenState extends State<PositionScreen> {
                         ),
                         const Padding(
                           padding: EdgeInsets.only(bottom: 5, left: 5),
-                          child: Text('kg',
-                              style: TextStyle(color: _kTextSec, fontSize: 16)),
+                          child: Text(
+                            'kg',
+                            style: TextStyle(color: _kTextSec, fontSize: 16),
+                          ),
                         ),
                       ],
                     ),
@@ -296,9 +322,14 @@ class _FootView extends StatelessWidget {
           child: CustomPaint(painter: _FootPainter(pressure: pressure)),
         ),
         const SizedBox(height: 10),
-        Text(label,
-            style: const TextStyle(
-                color: Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF9CA3AF),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -314,12 +345,13 @@ class _FootPainter extends CustomPainter {
     final h = size.height;
     final r = w / 2;
 
-    final path = Path()
-      ..moveTo(0, h)
-      ..lineTo(0, r)
-      ..arcTo(Rect.fromLTWH(0, 0, w, w), math.pi, -math.pi, false)
-      ..lineTo(w, h)
-      ..close();
+    final path =
+        Path()
+          ..moveTo(0, h)
+          ..lineTo(0, r)
+          ..arcTo(Rect.fromLTWH(0, 0, w, w), math.pi, -math.pi, false)
+          ..lineTo(w, h)
+          ..close();
 
     canvas.save();
     canvas.clipPath(path);
@@ -331,7 +363,12 @@ class _FootPainter extends CustomPainter {
     );
 
     // Pressure blobs — bleu (low) → orange → rouge (high)
-    void drawSpot(Offset center, double radius, Color innerColor, double opacity) {
+    void drawSpot(
+      Offset center,
+      double radius,
+      Color innerColor,
+      double opacity,
+    ) {
       canvas.drawCircle(
         center,
         radius,
@@ -346,11 +383,21 @@ class _FootPainter extends CustomPainter {
     }
 
     // Avant-pied — pression haute → rouge
-    drawSpot(Offset(w * 0.5, h * 0.30), 40, const Color(0xFFEB5757), 0.90 * pressure);
+    drawSpot(
+      Offset(w * 0.5, h * 0.30),
+      40,
+      const Color(0xFFEB5757),
+      0.90 * pressure,
+    );
     // Milieu voûte — pression basse → bleu
     drawSpot(Offset(w * 0.38, h * 0.54), 20, _kAccent, 0.45 * pressure);
     // Talon — pression moyenne → orange
-    drawSpot(Offset(w * 0.5, h * 0.78), 30, const Color(0xFFF59E0B), 0.80 * pressure);
+    drawSpot(
+      Offset(w * 0.5, h * 0.78),
+      30,
+      const Color(0xFFF59E0B),
+      0.80 * pressure,
+    );
 
     canvas.restore();
   }
@@ -376,8 +423,10 @@ class _LegendItem extends StatelessWidget {
           decoration: BoxDecoration(shape: BoxShape.circle, color: color),
         ),
         const SizedBox(width: 5),
-        Text(label,
-            style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
+        Text(
+          label,
+          style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11),
+        ),
       ],
     );
   }
@@ -415,26 +464,32 @@ class _StatCard extends StatelessWidget {
             children: [
               Icon(icon, size: 12, color: accentColor),
               const SizedBox(width: 5),
-              Text(label,
-                  style: const TextStyle(color: _kTextSec, fontSize: 12)),
+              Text(
+                label,
+                style: const TextStyle(color: _kTextSec, fontSize: 12),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(value,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: _kPrimary,
-                    height: 1,
-                    letterSpacing: -0.5,
-                  )),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: _kPrimary,
+                  height: 1,
+                  letterSpacing: -0.5,
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4, left: 4),
-                child: Text(unit,
-                    style: const TextStyle(color: _kTextSec, fontSize: 13)),
+                child: Text(
+                  unit,
+                  style: const TextStyle(color: _kTextSec, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -480,9 +535,14 @@ class _BalanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Équilibre',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14, color: _kPrimary)),
+              const Text(
+                'Équilibre',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: _kPrimary,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -496,14 +556,19 @@ class _BalanceCard extends StatelessWidget {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                          shape: BoxShape.circle, color: _statusColor),
+                        shape: BoxShape.circle,
+                        color: _statusColor,
+                      ),
                     ),
                     const SizedBox(width: 5),
-                    Text(_status,
-                        style: TextStyle(
-                            color: _statusColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600)),
+                    Text(
+                      _status,
+                      style: TextStyle(
+                        color: _statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -514,33 +579,42 @@ class _BalanceCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             child: SizedBox(
               height: 10,
-              child: LayoutBuilder(builder: (_, c) {
-                final lw = c.maxWidth * leftPercent;
-                return Stack(
-                  children: [
-                    Container(color: const Color(0xFF7C3AED).withValues(alpha: 0.15)),
-                    Container(
+              child: LayoutBuilder(
+                builder: (_, c) {
+                  final lw = c.maxWidth * leftPercent;
+                  return Stack(
+                    children: [
+                      Container(
+                        color: const Color(0xFF7C3AED).withValues(alpha: 0.15),
+                      ),
+                      Container(
                         width: lw,
-                        color: _kAccent.withValues(alpha: 0.25)),
-                    Positioned(
-                      left: c.maxWidth / 2 - 1,
-                      child: Container(
-                          width: 2, height: 10, color: Colors.white),
-                    ),
-                    // Accent line proportional
-                    Positioned(
-                      left: lw - 2,
-                      child: Container(
+                        color: _kAccent.withValues(alpha: 0.25),
+                      ),
+                      Positioned(
+                        left: c.maxWidth / 2 - 1,
+                        child: Container(
+                          width: 2,
+                          height: 10,
+                          color: Colors.white,
+                        ),
+                      ),
+                      // Accent line proportional
+                      Positioned(
+                        left: lw - 2,
+                        child: Container(
                           width: 4,
                           height: 10,
                           decoration: BoxDecoration(
                             color: _kAccent,
                             borderRadius: BorderRadius.circular(2),
-                          )),
-                    ),
-                  ],
-                );
-              }),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -550,25 +624,35 @@ class _BalanceCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${(leftPercent * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: _kAccent)),
-                  const Text('Gauche',
-                      style: TextStyle(color: _kTextSec, fontSize: 12)),
+                  Text(
+                    '${(leftPercent * 100).toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: _kAccent,
+                    ),
+                  ),
+                  const Text(
+                    'Gauche',
+                    style: TextStyle(color: _kTextSec, fontSize: 12),
+                  ),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${(rightPercent * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Color(0xFF7C3AED))),
-                  const Text('Droit',
-                      style: TextStyle(color: _kTextSec, fontSize: 12)),
+                  Text(
+                    '${(rightPercent * 100).toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Color(0xFF7C3AED),
+                    ),
+                  ),
+                  const Text(
+                    'Droit',
+                    style: TextStyle(color: _kTextSec, fontSize: 12),
+                  ),
                 ],
               ),
             ],

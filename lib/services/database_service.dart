@@ -31,12 +31,19 @@ class DatabaseService {
 
   Future<int> insertSession(Session session) async {
     final db = await database;
-    return await db.insert('sessions', session.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert(
+      'sessions',
+      session.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<Session>> getSessions() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('sessions', orderBy: 'id DESC');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'sessions',
+      orderBy: 'id DESC',
+    );
     return List.generate(maps.length, (i) {
       return Session.fromMap(maps[i]);
     });

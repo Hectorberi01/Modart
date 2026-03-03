@@ -9,18 +9,18 @@ import 'bluetooth_screen.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
-const _kAccent  = Color(0xFF2F80ED);
+const _kAccent = Color(0xFF2F80ED);
 const _kSuccess = Color(0xFF27AE60);
 const _kTextSec = Color(0xFF6B7280);
-const _kBg      = Color(0xFFF7F8FA);
+const _kBg = Color(0xFFF7F8FA);
 
 List<BoxShadow> _cardShadow() => [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.06),
-        blurRadius: 20,
-        offset: const Offset(0, 4),
-      )
-    ];
+  BoxShadow(
+    color: Colors.black.withValues(alpha: 0.06),
+    blurRadius: 20,
+    offset: const Offset(0, 4),
+  ),
+];
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -39,7 +39,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty;
     _btSub = FlutterBluePlus.events.onConnectionStateChanged.listen((_) {
       if (mounted) {
-        setState(() => _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty);
+        setState(
+          () => _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty,
+        );
       }
     });
   }
@@ -67,7 +69,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           content: const Text('Session enregistrée avec succès'),
           backgroundColor: _kPrimary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -105,21 +109,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           // BT indicator
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BluetoothScreen(
-                  onContinue: () => Navigator.pop(context),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => BluetoothScreen(
+                          onContinue: () => Navigator.pop(context),
+                        ),
+                  ),
                 ),
-              ),
-            ),
             child: Container(
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: _btConnected
-                    ? _kSuccess.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.1),
+                color:
+                    _btConnected
+                        ? _kSuccess.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -245,7 +252,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -254,7 +262,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     SizedBox(width: 10),
                     Text(
                       'Terminer la session',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -303,8 +314,10 @@ class _HeroMetricCard extends StatelessWidget {
                   children: [
                     Icon(icon, size: 14, color: color),
                     const SizedBox(width: 6),
-                    Text(label,
-                        style: const TextStyle(color: _kTextSec, fontSize: 13)),
+                    Text(
+                      label,
+                      style: const TextStyle(color: _kTextSec, fontSize: 13),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -323,9 +336,14 @@ class _HeroMetricCard extends StatelessWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8, left: 6),
-                      child: Text(unit,
-                          style: const TextStyle(
-                              color: _kTextSec, fontSize: 18, fontWeight: FontWeight.w400)),
+                      child: Text(
+                        unit,
+                        style: const TextStyle(
+                          color: _kTextSec,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -381,8 +399,10 @@ class _SpeedGaugeCard extends StatelessWidget {
                   children: [
                     Icon(Icons.speed, size: 14, color: Color(0xFFF59E0B)),
                     SizedBox(width: 6),
-                    Text('Vitesse actuelle',
-                        style: TextStyle(color: _kTextSec, fontSize: 13)),
+                    Text(
+                      'Vitesse actuelle',
+                      style: TextStyle(color: _kTextSec, fontSize: 13),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -401,11 +421,14 @@ class _SpeedGaugeCard extends StatelessWidget {
                     ),
                     const Padding(
                       padding: EdgeInsets.only(bottom: 8, left: 6),
-                      child: Text('km/h',
-                          style: TextStyle(
-                              color: _kTextSec,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400)),
+                      child: Text(
+                        'km/h',
+                        style: TextStyle(
+                          color: _kTextSec,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -451,15 +474,16 @@ class _ArcGaugePainter extends CustomPainter {
 
     // Value arc
     if (fraction > 0) {
-      final paint = Paint()
-        ..shader = const SweepGradient(
-          colors: [Color(0xFF2F80ED), Color(0xFF7C3AED)],
-          startAngle: 0,
-          endAngle: math.pi * 2,
-        ).createShader(Rect.fromCircle(center: center, radius: radius))
-        ..strokeWidth = 8
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
+      final paint =
+          Paint()
+            ..shader = const SweepGradient(
+              colors: [Color(0xFF2F80ED), Color(0xFF7C3AED)],
+              startAngle: 0,
+              endAngle: math.pi * 2,
+            ).createShader(Rect.fromCircle(center: center, radius: radius))
+            ..strokeWidth = 8
+            ..style = PaintingStyle.stroke
+            ..strokeCap = StrokeCap.round;
 
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
@@ -482,8 +506,7 @@ class _ArcGaugePainter extends CustomPainter {
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
-    tp.paint(
-        canvas, center - Offset(tp.width / 2, tp.height / 2));
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
   }
 
   @override
@@ -522,9 +545,11 @@ class _SmallMetricCard extends StatelessWidget {
               Icon(icon, size: 12, color: _kTextSec),
               const SizedBox(width: 5),
               Flexible(
-                child: Text(label,
-                    style: const TextStyle(color: _kTextSec, fontSize: 12),
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  label,
+                  style: const TextStyle(color: _kTextSec, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -535,17 +560,19 @@ class _SmallMetricCard extends StatelessWidget {
               Text(
                 value,
                 style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: _kPrimary,
-                    height: 1,
-                    letterSpacing: -0.5),
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: _kPrimary,
+                  height: 1,
+                  letterSpacing: -0.5,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4, left: 4),
-                child: Text(unit,
-                    style: const TextStyle(
-                        color: _kTextSec, fontSize: 13)),
+                child: Text(
+                  unit,
+                  style: const TextStyle(color: _kTextSec, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -601,8 +628,10 @@ class _BalanceCard extends StatelessWidget {
                 children: [
                   Icon(Icons.balance, size: 14, color: _kTextSec),
                   SizedBox(width: 6),
-                  Text('Poids & équilibre',
-                      style: TextStyle(color: _kTextSec, fontSize: 13)),
+                  Text(
+                    'Poids & équilibre',
+                    style: TextStyle(color: _kTextSec, fontSize: 13),
+                  ),
                 ],
               ),
               Container(
@@ -638,8 +667,10 @@ class _BalanceCard extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.only(bottom: 5, left: 5),
-                child: Text('kg',
-                    style: TextStyle(color: _kTextSec, fontSize: 16)),
+                child: Text(
+                  'kg',
+                  style: TextStyle(color: _kTextSec, fontSize: 16),
+                ),
               ),
             ],
           ),
@@ -647,9 +678,10 @@ class _BalanceCard extends StatelessWidget {
           _BalanceRow(label: 'Gauche', percent: leftPercent, color: _kAccent),
           const SizedBox(height: 10),
           _BalanceRow(
-              label: 'Droite',
-              percent: rightPercent,
-              color: const Color(0xFF7C3AED)),
+            label: 'Droite',
+            percent: rightPercent,
+            color: const Color(0xFF7C3AED),
+          ),
         ],
       ),
     );
@@ -674,11 +706,14 @@ class _BalanceRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(color: _kTextSec, fontSize: 12)),
-            Text('${(percent * 100).toInt()}%',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    color: _kPrimary)),
+            Text(
+              '${(percent * 100).toInt()}%',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: _kPrimary,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 5),

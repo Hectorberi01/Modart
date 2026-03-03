@@ -1,161 +1,132 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'screens/splash_screen.dart';
-import 'screens/bluetooth_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/position_screen.dart';
-import 'screens/settings_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-void main() async {
+import 'theme/app_theme.dart';
+import 'screens/onboarding_screen.dart';
+import 'screens/live_dashboard_screen.dart';
+import 'screens/session_summary_screen.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SmartSole — Application Entry Point
+//
+// MultiProvider root pour le state management.
+// Thème dark par défaut, navigation personas-aware.
+// ─────────────────────────────────────────────────────────────────────────────
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('fr');
-  runApp(const ModarApp());
+
+  // Barres système transparentes pour l'immersion mesh gradient.
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+    ),
+  );
+
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => ThemeProvider())],
+      child: const SmartSoleApp(),
+    ),
+  );
 }
 
-class ModarApp extends StatelessWidget {
-  const ModarApp({super.key});
+/// Provider pour le toggle dark/light mode.
+class ThemeProvider extends ChangeNotifier {
+  bool _isDarkMode = true;
+
+  bool get isDarkMode => _isDarkMode;
+
+  ThemeData get theme =>
+      _isDarkMode ? SmartSoleTheme.dark : SmartSoleTheme.light;
+
+  void toggleTheme() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+  }
+
+  void setDarkMode(bool value) {
+    _isDarkMode = value;
+    notifyListeners();
+  }
+}
+
+class SmartSoleApp extends StatelessWidget {
+  const SmartSoleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Modar',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-        cardColor: Colors.white,
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF1C1F2E),
-          onPrimary: Colors.white,
-          secondary: Color(0xFF2F80ED),
-          surface: Colors.white,
-          onSurface: Color(0xFF111827),
-          outline: Color(0xFFE5E7EB),
-        ),
-        textTheme: GoogleFonts.outfitTextTheme(
-          ThemeData.light().textTheme,
-        ).apply(
-          bodyColor: const Color(0xFF111827),
-          displayColor: const Color(0xFF111827),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF7F8FA),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-      ),
-      home: const AppInitializationFlow(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return MaterialApp(
+          title: 'SmartSole',
+          debugShowCheckedModeBanner: false,
+          theme: themeProvider.theme,
+
+          // Navigation
+          initialRoute: '/onboarding',
+          routes: {
+            '/onboarding': (_) => const OnboardingScreen(),
+            '/pairing': (_) => const _PairingPlaceholder(),
+            '/dashboard': (_) => const LiveDashboardScreen(),
+            '/summary': (_) => const SessionSummaryScreen(),
+          },
+
+          // Route inconnue — fallback dashboard
+          onUnknownRoute:
+              (settings) => MaterialPageRoute(
+                builder: (_) => const LiveDashboardScreen(),
+              ),
+        );
+      },
     );
   }
 }
 
-class AppInitializationFlow extends StatefulWidget {
-  const AppInitializationFlow({super.key});
-
-  @override
-  State<AppInitializationFlow> createState() => _AppInitializationFlowState();
-}
-
-class _AppInitializationFlowState extends State<AppInitializationFlow> {
-  bool _showSplash = true;
-  bool _showBluetooth = false;
+/// Placeholder pour PairingScreen (sera remplacé en Phase 5 complète).
+class _PairingPlaceholder extends StatelessWidget {
+  const _PairingPlaceholder();
 
   @override
   Widget build(BuildContext context) {
-    if (_showSplash) {
-      return SplashScreen(
-        onFinished: () {
-          setState(() {
-            _showSplash = false;
-            _showBluetooth = true;
-          });
-        },
-      );
-    }
-
-    if (_showBluetooth) {
-      return BluetoothScreen(
-        onContinue: () {
-          setState(() {
-            _showBluetooth = false;
-          });
-        },
-      );
-    }
-
-    return const MainNavigation();
-  }
-}
-
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
-
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  void _openBluetooth(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BluetoothScreen(onContinue: () => Navigator.pop(context)),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const DashboardScreen(),
-      const PositionScreen(),
-      const HistoryScreen(),
-      SettingsScreen(onManageBluetooth: () => _openBluetooth(context)),
-    ];
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey.shade400,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_outlined),
-            activeIcon: Icon(Icons.analytics),
-            label: 'Dashboard',
+      backgroundColor:
+          isDark ? SmartSoleColors.darkBg : SmartSoleColors.lightBg,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.bluetooth_searching,
+                size: 64,
+                color: SmartSoleColors.biTeal.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Appairage BLE',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'En cours de développement...',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton.icon(
+                onPressed:
+                    () => Navigator.pushReplacementNamed(context, '/dashboard'),
+                icon: const Icon(Icons.skip_next),
+                label: const Text('Skip → Dashboard'),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_walk),
-            label: 'Position',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Historique',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Réglages',
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -23,9 +23,10 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slideAnim = Tween<double>(begin: 20, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _slideAnim = Tween<double>(
+      begin: 20,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
     Future.delayed(const Duration(seconds: 3), widget.onFinished);
@@ -49,10 +50,11 @@ class _SplashScreenState extends State<SplashScreen>
                 opacity: _fadeAnim,
                 child: AnimatedBuilder(
                   animation: _slideAnim,
-                  builder: (_, child) => Transform.translate(
-                    offset: Offset(0, _slideAnim.value),
-                    child: child,
-                  ),
+                  builder:
+                      (_, child) => Transform.translate(
+                        offset: Offset(0, _slideAnim.value),
+                        child: child,
+                      ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -65,7 +67,9 @@ class _SplashScreenState extends State<SplashScreen>
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF1C1F2E).withValues(alpha: 0.25),
+                              color: const Color(
+                                0xFF1C1F2E,
+                              ).withValues(alpha: 0.25),
                               blurRadius: 32,
                               offset: const Offset(0, 12),
                             ),
