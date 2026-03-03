@@ -2,61 +2,47 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SegmentBadge — Badge coloré de segment de marche
+// SegmentBadge v2 — Badge de segment de marche
 //
-// 4 états : Arrêt (gris) / Lent (bleu) / Normal (vert) / Rapide (orange).
-// Transition animée entre les états.
+// Icône contextuelle + label + animation pulsation pour "fast".
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Type de segment de marche.
 enum WalkSegment { stopped, slow, normal, fast }
 
 class SegmentBadge extends StatelessWidget {
-  const SegmentBadge({super.key, required this.segment, this.compact = false});
+  const SegmentBadge({super.key, required this.segment});
 
-  /// Segment de marche actuel.
   final WalkSegment segment;
-
-  /// Mode compact (uniquement le point + label court).
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final _SegmentStyle style = _styleForSegment(segment);
+    final _SegmentStyle style = _styleFor(segment);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 12,
-        vertical: compact ? 4 : 6,
-      ),
+      duration: SmartSoleDesign.animNormal,
+      curve: SmartSoleDesign.animCurve,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: style.color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(compact ? 8 : 12),
-        border: Border.all(color: style.color.withValues(alpha: 0.3), width: 1),
+        color: style.color.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadiusXs),
+        border: Border.all(
+          color: style.color.withValues(alpha: 0.25),
+          width: 0.8,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Point indicateur
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: style.color,
-            ),
-          ),
+          Icon(style.icon, size: 14, color: style.color),
           const SizedBox(width: 6),
-          // Label
           Text(
             style.label,
             style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: style.color,
-              fontSize: compact ? 11 : 13,
-              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
             ),
           ),
         ],
@@ -64,31 +50,40 @@ class SegmentBadge extends StatelessWidget {
     );
   }
 
-  _SegmentStyle _styleForSegment(WalkSegment segment) {
+  _SegmentStyle _styleFor(WalkSegment segment) {
     return switch (segment) {
-      WalkSegment.stopped => const _SegmentStyle(
+      WalkSegment.stopped => _SegmentStyle(
         label: 'Arrêt',
-        color: Color(0xFF6B7280),
+        icon: Icons.pause_circle_outline,
+        color: SmartSoleColors.textSecondaryDark,
       ),
-      WalkSegment.slow => const _SegmentStyle(
+      WalkSegment.slow => _SegmentStyle(
         label: 'Lent',
-        color: Color(0xFF3B82F6),
+        icon: Icons.accessibility_new,
+        color: SmartSoleColors.biTeal,
       ),
       WalkSegment.normal => _SegmentStyle(
         label: 'Normal',
+        icon: Icons.directions_walk,
         color: SmartSoleColors.biNormal,
       ),
-      WalkSegment.fast => const _SegmentStyle(
+      WalkSegment.fast => _SegmentStyle(
         label: 'Rapide',
-        color: Color(0xFFF97316),
+        icon: Icons.directions_run,
+        color: SmartSoleColors.biWarning,
       ),
     };
   }
 }
 
 class _SegmentStyle {
-  const _SegmentStyle({required this.label, required this.color});
+  const _SegmentStyle({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
 
   final String label;
+  final IconData icon;
   final Color color;
 }

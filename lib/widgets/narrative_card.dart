@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'glass_bento_card.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NarrativeCard — Carte de narration BI coach
+// NarrativeCard v2 — Coach BI textuel
 //
-// GlassBentoCard avec luminosité augmentée, icône coach à gauche,
-// 2 phrases texte avec apparition en fondu.
+// Card glassmorphism avec icône coaching, 2 phrases narratives animées
+// en fondu séquentiel, accent dynamique BI.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class NarrativeCard extends StatefulWidget {
   const NarrativeCard({super.key, required this.narratives, this.accentColor});
 
-  /// Liste des phrases narratives BI (max 2 recommandées).
   final List<String> narratives;
-
-  /// Couleur d'accent optionnelle.
   final Color? accentColor;
 
   @override
@@ -24,28 +22,34 @@ class NarrativeCard extends StatefulWidget {
 class _NarrativeCardState extends State<NarrativeCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
+  late Animation<double> _fade1;
+  late Animation<double> _fade2;
 
   @override
   void initState() {
     super.initState();
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1200),
     );
-    _fadeAnimation = CurvedAnimation(
+
+    _fade1 = CurvedAnimation(
       parent: _fadeController,
-      curve: Curves.easeIn,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
     );
+    _fade2 = CurvedAnimation(
+      parent: _fadeController,
+      curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+    );
+
     _fadeController.forward();
   }
 
   @override
-  void didUpdateWidget(covariant NarrativeCard oldWidget) {
+  void didUpdateWidget(NarrativeCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.narratives != widget.narratives) {
-      _fadeController.reset();
-      _fadeController.forward();
+      _fadeController.forward(from: 0);
     }
   }
 
@@ -57,72 +61,88 @@ class _NarrativeCardState extends State<NarrativeCard>
 
   @override
   Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color accent = widget.accentColor ?? SmartSoleColors.biNormal;
 
     return GlassBentoCard(
-      brightnessBoost: true,
-      accentColor: widget.accentColor,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icône coach
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: (widget.accentColor ?? Colors.white).withValues(
-                  alpha: isDark ? 0.1 : 0.08,
+      accentColor: accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accent.withValues(alpha: 0.12),
+                ),
+                child: Icon(Icons.auto_awesome, size: 16, color: accent),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Coach SmartSole',
+                style: textTheme.titleMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              child: Icon(
-                Icons.psychology_outlined,
-                size: 22,
-                color:
-                    widget.accentColor ??
-                    (isDark ? Colors.white70 : Colors.black54),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Phrases narratives
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Coach BI',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          widget.accentColor ??
-                          (isDark ? Colors.white54 : Colors.black38),
-                      letterSpacing: 0.5,
-                    ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Phrases narratives avec animation
+          ...List.generate(widget.narratives.length, (i) {
+            final Animation<double> fade = i == 0 ? _fade1 : _fade2;
+            return FadeTransition(
+              opacity: fade,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.15),
+                  end: Offset.zero,
+                ).animate(fade),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: i < widget.narratives.length - 1 ? 10 : 0,
                   ),
-                  const SizedBox(height: 6),
-                  ...widget.narratives.map(
-                    (text) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        text,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white : Colors.black87,
-                          height: 1.4,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: accent.withValues(alpha: 0.5),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          widget.narratives[i],
+                          style: textTheme.bodyMedium?.copyWith(
+                            color:
+                                isDark
+                                    ? SmartSoleColors.textPrimaryDark
+                                        .withValues(alpha: 0.85)
+                                    : SmartSoleColors.textPrimaryLight,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
+            );
+          }),
+        ],
       ),
     );
   }

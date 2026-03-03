@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GlassBentoCard — Composant glassmorphism réutilisable
+// GlassBentoCard v2 — Glassmorphism raffiné
 //
-// BackdropFilter blur + fond semi-transparent + bordure fine + ombre subtile.
-// S'adapte au dark/light mode. Supporte une pulsation en cas d'alerte BI.
+// Blur doux, bordure subtile avec accent lumineux, micro-animation tap,
+// ombre portée légère, pulsation optionnelle pour les alertes BI.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class GlassBentoCard extends StatefulWidget {
@@ -15,34 +15,17 @@ class GlassBentoCard extends StatefulWidget {
     required this.child,
     this.accentColor,
     this.pulseOnAlert = false,
-    this.padding,
-    this.width,
-    this.height,
     this.onTap,
-    this.brightnessBoost = false,
+    this.padding = const EdgeInsets.all(16),
+    this.borderRadius,
   });
 
-  /// Contenu de la carte.
   final Widget child;
-
-  /// Couleur d'accent optionnelle — colore la bordure et le glow.
   final Color? accentColor;
-
-  /// Active une animation de pulsation (utile pour les alertes BI).
   final bool pulseOnAlert;
-
-  /// Padding customisable (défaut : SmartSoleDesign.cardPadding).
-  final EdgeInsetsGeometry? padding;
-
-  /// Dimensions optionnelles.
-  final double? width;
-  final double? height;
-
-  /// Callback tap optionnel.
   final VoidCallback? onTap;
-
-  /// Luminosité augmentée de 20% — utilisé par NarrativeCard.
-  final bool brightnessBoost;
+  final EdgeInsets padding;
+  final double? borderRadius;
 
   @override
   State<GlassBentoCard> createState() => _GlassBentoCardState();
@@ -52,31 +35,30 @@ class _GlassBentoCardState extends State<GlassBentoCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  bool _isPressed = false;
 
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2200),
     );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOutSine),
     );
-
     if (widget.pulseOnAlert) {
       _pulseController.repeat(reverse: true);
     }
   }
 
   @override
-  void didUpdateWidget(covariant GlassBentoCard oldWidget) {
+  void didUpdateWidget(GlassBentoCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.pulseOnAlert && !_pulseController.isAnimating) {
       _pulseController.repeat(reverse: true);
     } else if (!widget.pulseOnAlert && _pulseController.isAnimating) {
       _pulseController.stop();
-      _pulseController.reset();
     }
   }
 
@@ -89,62 +71,100 @@ class _GlassBentoCardState extends State<GlassBentoCard>
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color bgColor =
-        widget.brightnessBoost
-            ? (isDark ? const Color(0x2EFFFFFF) : const Color(0x4DFFFFFF))
-            : (isDark
-                ? SmartSoleColors.glassBgDark
-                : SmartSoleColors.glassBgLight);
+    final double radius = widget.borderRadius ?? SmartSoleDesign.borderRadius;
 
-    final Color borderColor =
-        widget.accentColor?.withValues(alpha: 0.3) ??
-        (isDark ? SmartSoleColors.glassBorder : const Color(0x22000000));
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown:
+          widget.onTap != null
+              ? (_) => setState(() => _isPressed = true)
+              : null,
+      onTapUp:
+          widget.onTap != null
+              ? (_) => setState(() => _isPressed = false)
+              : null,
+      onTapCancel:
+          widget.onTap != null
+              ? () => setState(() => _isPressed = false)
+              : null,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.97 : 1.0,
+        duration: SmartSoleDesign.animFast,
+        curve: SmartSoleDesign.animCurve,
+        child: AnimatedBuilder(
+          animation: _pulseAnimation,
+          builder: (context, child) {
+            final double pulseValue =
+                widget.pulseOnAlert ? _pulseAnimation.value : 0;
 
-    Widget card = ClipRRect(
-      borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: SmartSoleDesign.blurSigma,
-          sigmaY: SmartSoleDesign.blurSigma,
-        ),
-        child: Container(
-          width: widget.width,
-          height: widget.height,
-          padding:
-              widget.padding ??
-              const EdgeInsets.all(SmartSoleDesign.cardPadding),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
-            border: Border.all(
-              color: borderColor,
-              width: SmartSoleDesign.glassBorderWidth,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    widget.accentColor?.withValues(alpha: 0.1) ??
-                    Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+            final Color borderColor =
+                widget.accentColor != null
+                    ? widget.accentColor!.withValues(
+                      alpha: 0.15 + pulseValue * 0.15,
+                    )
+                    : isDark
+                    ? SmartSoleColors.glassBorderDark
+                    : SmartSoleColors.glassBorderLight;
+
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(radius),
+                boxShadow: [
+                  // Ombre portée subtile
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                  // Lueur accent si couleur active
+                  if (widget.accentColor != null && pulseValue > 0)
+                    BoxShadow(
+                      color: widget.accentColor!.withValues(
+                        alpha: 0.08 * pulseValue,
+                      ),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                ],
               ),
-            ],
-          ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: SmartSoleDesign.blurSigma,
+                    sigmaY: SmartSoleDesign.blurSigma,
+                  ),
+                  child: Container(
+                    padding: widget.padding,
+                    decoration: BoxDecoration(
+                      color:
+                          isDark
+                              ? SmartSoleColors.glassDark
+                              : SmartSoleColors.glassLight,
+                      borderRadius: BorderRadius.circular(radius),
+                      border: Border.all(color: borderColor, width: 1.0),
+                      // Gradient interne subtil (lumière en haut à gauche)
+                      gradient:
+                          isDark
+                              ? LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.05),
+                                  Colors.white.withValues(alpha: 0.01),
+                                ],
+                              )
+                              : null,
+                    ),
+                    child: child,
+                  ),
+                ),
+              ),
+            );
+          },
           child: widget.child,
         ),
       ),
     );
-
-    // Envelopper dans un ScaleTransition si pulsation active.
-    if (widget.pulseOnAlert) {
-      card = ScaleTransition(scale: _pulseAnimation, child: card);
-    }
-
-    // Envelopper dans un GestureDetector si tap activé.
-    if (widget.onTap != null) {
-      card = GestureDetector(onTap: widget.onTap, child: card);
-    }
-
-    return card;
   }
 }

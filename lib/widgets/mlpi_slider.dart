@@ -2,143 +2,222 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MLPISlider — Index de Pression Médio-Latéral
+// MLPISlider v2 — Index Medio-Latéral de Pression
 //
-// Barre horizontale de -1 (externe/supination) à +1 (interne/pronation).
-// Le curseur s'anime vers la valeur courante. Couleur dynamique BI.
+// Barre horizontale gradient (externe–centre–interne), curseur animé avec
+// glow, labels typographiques, couleur BI dynamique.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class MLPISlider extends StatelessWidget {
-  const MLPISlider({super.key, required this.value, this.height = 56});
+class MLPISlider extends StatefulWidget {
+  const MLPISlider({super.key, required this.value});
 
-  /// Valeur MLPI : -1 (externe) → 0 (centré) → +1 (interne).
+  /// Valeur entre -1 (externe/supination) et +1 (interne/pronation).
   final double value;
 
-  /// Hauteur totale du widget.
-  final double height;
+  @override
+  State<MLPISlider> createState() => _MLPISliderState();
+}
+
+class _MLPISliderState extends State<MLPISlider>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _glowController;
+
+  @override
+  void initState() {
+    super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final double clampedValue = value.clamp(-1.0, 1.0);
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final Color cursorColor = _mlpiColor(widget.value);
 
-    // Couleur du curseur selon la déviation
-    final Color cursorColor = _colorForValue(clampedValue.abs());
-
-    return SizedBox(
-      height: height,
-      child: Column(
-        children: [
-          // Labels
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Externe',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color:
-                        isDark
-                            ? SmartSoleColors.textSecondaryDark
-                            : SmartSoleColors.textSecondaryLight,
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Labels
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Externe',
+                style: textTheme.labelSmall?.copyWith(
+                  color:
+                      isDark
+                          ? SmartSoleColors.textTertiaryDark
+                          : SmartSoleColors.textTertiaryLight,
                 ),
-                Text(
-                  'Centre',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: cursorColor,
-                  ),
+              ),
+              Text(
+                'Centre',
+                style: textTheme.labelSmall?.copyWith(
+                  color: cursorColor.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w600,
                 ),
-                Text(
-                  'Interne',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color:
-                        isDark
-                            ? SmartSoleColors.textSecondaryDark
-                            : SmartSoleColors.textSecondaryLight,
-                  ),
+              ),
+              Text(
+                'Interne',
+                style: textTheme.labelSmall?.copyWith(
+                  color:
+                      isDark
+                          ? SmartSoleColors.textTertiaryDark
+                          : SmartSoleColors.textTertiaryLight,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          // Barre + curseur
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final double barWidth = constraints.maxWidth;
-                // Position du curseur : -1 → gauche, 0 → centre, +1 → droite
-                final double cursorX =
-                    (barWidth / 2) + (clampedValue * barWidth / 2);
+        ),
+        const SizedBox(height: 8),
 
-                return Stack(
-                  alignment: Alignment.centerLeft,
-                  children: [
-                    // Barre de fond
-                    Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(3),
-                        color:
-                            isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.black.withValues(alpha: 0.06),
-                      ),
+        // Slider visuel
+        SizedBox(
+          height: 28,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double w = constraints.maxWidth;
+              // Map [-1, +1] → [0, w]
+              final double pos =
+                  ((widget.value + 1.0) / 2.0).clamp(0.0, 1.0) * w;
+
+              return AnimatedBuilder(
+                animation: _glowController,
+                builder: (context, _) {
+                  return CustomPaint(
+                    painter: _MLPIPainter(
+                      position: pos,
+                      width: w,
+                      cursorColor: cursorColor,
+                      glowValue: _glowController.value,
+                      isDark: isDark,
                     ),
-                    // Marqueur centre
-                    Positioned(
-                      left: barWidth / 2 - 0.5,
-                      child: Container(
-                        width: 1,
-                        height: 14,
-                        color:
-                            isDark
-                                ? Colors.white.withValues(alpha: 0.2)
-                                : Colors.black.withValues(alpha: 0.15),
-                      ),
-                    ),
-                    // Curseur animé
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOutCubic,
-                      left: cursorX - 8,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: cursorColor,
-                          boxShadow: [
-                            BoxShadow(
-                              color: cursorColor.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                    size: Size(w, 28),
+                  );
+                },
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  /// Couleur selon la déviation absolue : teal (centré) → ambre → rouge.
-  Color _colorForValue(double absValue) {
-    if (absValue < 0.15) return SmartSoleColors.biTeal;
-    if (absValue < 0.30) return SmartSoleColors.biWarning;
+  Color _mlpiColor(double v) {
+    final double abs = v.abs();
+    if (abs <= 0.10) return SmartSoleColors.biNormal;
+    if (abs <= 0.25) return SmartSoleColors.biWarning;
     return SmartSoleColors.biAlert;
+  }
+}
+
+// ─── Painter ────────────────────────────────────────────────────────────────
+
+class _MLPIPainter extends CustomPainter {
+  _MLPIPainter({
+    required this.position,
+    required this.width,
+    required this.cursorColor,
+    required this.glowValue,
+    required this.isDark,
+  });
+
+  final double position;
+  final double width;
+  final Color cursorColor;
+  final double glowValue;
+  final bool isDark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double trackY = size.height / 2;
+    final double trackH = 3.0;
+    final double cursorR = 7.0;
+
+    // ── Track ─────────────────────────────────────────────────────────────
+    final RRect trackRRect = RRect.fromLTRBR(
+      0,
+      trackY - trackH / 2,
+      width,
+      trackY + trackH / 2,
+      const Radius.circular(2),
+    );
+
+    final Paint trackPaint =
+        Paint()
+          ..shader = LinearGradient(
+            colors: [
+              SmartSoleColors.biTeal.withValues(alpha: 0.30),
+              SmartSoleColors.biNormal.withValues(alpha: 0.40),
+              SmartSoleColors.biWarning.withValues(alpha: 0.30),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ).createShader(Rect.fromLTWH(0, trackY - trackH / 2, width, trackH));
+
+    canvas.drawRRect(trackRRect, trackPaint);
+
+    // ── Centre marker ─────────────────────────────────────────────────────
+    final Paint centerPaint =
+        Paint()
+          ..color =
+              isDark
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.black.withValues(alpha: 0.10)
+          ..strokeWidth = 1.0;
+    canvas.drawLine(
+      Offset(width / 2, trackY - 6),
+      Offset(width / 2, trackY + 6),
+      centerPaint,
+    );
+
+    // ── Glow sous le curseur ──────────────────────────────────────────────
+    final double glowRadius = cursorR * 3 + glowValue * 4;
+    final Paint glowPaint =
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              cursorColor.withValues(alpha: 0.20 + glowValue * 0.08),
+              cursorColor.withValues(alpha: 0),
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(position, trackY),
+              radius: glowRadius,
+            ),
+          );
+    canvas.drawCircle(Offset(position, trackY), glowRadius, glowPaint);
+
+    // ── Curseur ───────────────────────────────────────────────────────────
+    final Paint cursorShadow =
+        Paint()
+          ..color = cursorColor.withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawCircle(Offset(position, trackY), cursorR, cursorShadow);
+
+    final Paint cursorPaint = Paint()..color = cursorColor;
+    canvas.drawCircle(Offset(position, trackY), cursorR, cursorPaint);
+
+    // Point blanc central
+    final Paint innerPaint = Paint()..color = Colors.white;
+    canvas.drawCircle(Offset(position, trackY), 2.5, innerPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MLPIPainter old) {
+    return old.position != position ||
+        old.cursorColor != cursorColor ||
+        old.glowValue != glowValue;
   }
 }
