@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/splash_screen.dart';
 import 'screens/bluetooth_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -7,7 +8,9 @@ import 'screens/history_screen.dart';
 import 'screens/position_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('fr');
   runApp(const ModarApp());
 }
 
@@ -22,21 +25,27 @@ class ModarApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.white,
-        cardColor: const Color(0xFFF5F5F7),
+        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+        cardColor: Colors.white,
         colorScheme: const ColorScheme.light(
-          primary: Colors.black,
+          primary: Color(0xFF1C1F2E),
           onPrimary: Colors.white,
-          secondary: Color(0xFF007AFF), // iOS blue accent
+          secondary: Color(0xFF2F80ED),
           surface: Colors.white,
-          onSurface: Colors.black,
-          outline: Color(0xFFE5E5E5),
+          onSurface: Color(0xFF111827),
+          outline: Color(0xFFE5E7EB),
         ),
         textTheme: GoogleFonts.outfitTextTheme(
           ThemeData.light().textTheme,
         ).apply(
-          bodyColor: Colors.black,
-          displayColor: Colors.black,
+          bodyColor: const Color(0xFF111827),
+          displayColor: const Color(0xFF111827),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF7F8FA),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
         ),
       ),
       home: const AppInitializationFlow(),

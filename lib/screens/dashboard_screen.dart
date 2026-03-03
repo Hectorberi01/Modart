@@ -1,11 +1,54 @@
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../models/session.dart';
 import '../services/database_service.dart';
 import 'package:intl/intl.dart';
 import 'bluetooth_screen.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-class DashboardScreen extends StatelessWidget {
+const _kPrimary = Color(0xFF1C1F2E);
+const _kAccent  = Color(0xFF2F80ED);
+const _kSuccess = Color(0xFF27AE60);
+const _kTextSec = Color(0xFF6B7280);
+const _kBg      = Color(0xFFF7F8FA);
+
+List<BoxShadow> _cardShadow() => [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.06),
+        blurRadius: 20,
+        offset: const Offset(0, 4),
+      )
+    ];
+
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _btConnected = false;
+  StreamSubscription? _btSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty;
+    _btSub = FlutterBluePlus.events.onConnectionStateChanged.listen((_) {
+      if (mounted) {
+        setState(() => _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _btSub?.cancel();
+    super.dispose();
+  }
 
   Future<void> _saveSession(BuildContext context) async {
     final now = DateTime.now();
@@ -13,18 +56,19 @@ class DashboardScreen extends StatelessWidget {
       title: 'Session ${DateFormat('HH:mm').format(now)}',
       date: DateFormat('dd MMMM yyyy').format(now),
       time: DateFormat('HH:mm').format(now),
-      duration: '12:34', // Mocked for now
-      distance: '2.4 km', // Mocked for now
-      avgSpeed: '8.5 km/h', // Mocked for now
+      duration: '12:34',
+      distance: '2.4 km',
+      avgSpeed: '8.5 km/h',
     );
-
     await DatabaseService().insertSession(session);
-
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Session enregistrée avec succès !'),
-          backgroundColor: Colors.black,
+        SnackBar(
+          content: const Text('Session enregistrée avec succès'),
+          backgroundColor: _kPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
         ),
       );
     }
@@ -33,85 +77,189 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: _kBg,
+        titleSpacing: 20,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              DateFormat('EEEE d MMMM', 'fr').format(DateTime.now()),
+              style: const TextStyle(
+                color: _kTextSec,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const Text(
+              'Session en cours',
+              style: TextStyle(
+                color: _kPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => BluetoothScreen(
-                          onContinue: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                    );
-                  },
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F7),
-                      shape: BoxShape.circle,
+          // BT indicator
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BluetoothScreen(
+                  onContinue: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _btConnected
+                    ? _kSuccess.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.bluetooth,
+                    size: 14,
+                    color: _btConnected ? _kSuccess : _kTextSec,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _btConnected ? 'Connecté' : 'Déconnecté',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: _btConnected ? _kSuccess : _kTextSec,
                     ),
-                    child: const Icon(Icons.bluetooth, size: 20, color: Colors.blue),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Timer
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _kPrimary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.timer_outlined, size: 13, color: _kPrimary),
+                SizedBox(width: 4),
+                Text(
+                  '00:12:34',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _kPrimary,
                   ),
                 ),
-                const SizedBox(width: 4),
-                const Text('00:12:34', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-                const SizedBox(width: 16),
               ],
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         child: Column(
           children: [
-            _MetricCard(
+            // Distance — hero card
+            _HeroMetricCard(
               label: 'Distance parcourue',
               value: '2.4',
               unit: 'km',
+              icon: Icons.route_outlined,
+              color: _kAccent,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+
+            // Speed — gauge card
             const _SpeedGaugeCard(
               label: 'Vitesse actuelle',
               value: '8.5',
               unit: 'km/h',
+              speedFraction: 0.57,
             ),
-            const SizedBox(height: 16),
-            const _WeightBalanceCard(
+            const SizedBox(height: 14),
+
+            // Weight row
+            const Row(
+              children: [
+                Expanded(
+                  child: _SmallMetricCard(
+                    label: 'Pied gauche',
+                    value: '37.5',
+                    unit: 'kg',
+                    icon: Icons.arrow_back,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _SmallMetricCard(
+                    label: 'Pied droit',
+                    value: '34.8',
+                    unit: 'kg',
+                    icon: Icons.arrow_forward,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Balance card
+            const _BalanceCard(
               totalWeight: '72.3',
               leftPercent: 0.52,
               rightPercent: 0.48,
             ),
-            const SizedBox(height: 16),
-            _MetricCard(
+            const SizedBox(height: 14),
+
+            // Time
+            _HeroMetricCard(
               label: 'Temps écoulé',
               value: '12:34',
-              unit: 'minutes',
+              unit: 'min',
+              icon: Icons.timer_outlined,
+              color: const Color(0xFF7C3AED),
             ),
             const SizedBox(height: 32),
+
+            // End session button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: () => _saveSession(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5F5F7),
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: _kPrimary,
+                  foregroundColor: Colors.white,
                   elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18)),
                 ),
-                child: const Text('Terminer la session', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.stop_circle_outlined, size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      'Terminer la session',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -119,11 +267,21 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.label, required this.value, required this.unit});
+// ─── Hero metric card ─────────────────────────────────────────────────────────
+
+class _HeroMetricCard extends StatelessWidget {
+  const _HeroMetricCard({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.icon,
+    required this.color,
+  });
   final String label;
   final String value;
   final String unit;
+  final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -131,25 +289,263 @@ class _MetricCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: _cardShadow(),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 14, color: color),
+                    const SizedBox(width: 6),
+                    Text(label,
+                        style: const TextStyle(color: _kTextSec, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: _kPrimary,
+                        height: 1,
+                        letterSpacing: -1.5,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8, left: 6),
+                      child: Text(unit,
+                          style: const TextStyle(
+                              color: _kTextSec, fontSize: 18, fontWeight: FontWeight.w400)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Speed gauge card ─────────────────────────────────────────────────────────
+
+class _SpeedGaugeCard extends StatelessWidget {
+  const _SpeedGaugeCard({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.speedFraction,
+  });
+  final String label;
+  final String value;
+  final String unit;
+  final double speedFraction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: _cardShadow(),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.speed, size: 14, color: Color(0xFFF59E0B)),
+                    SizedBox(width: 6),
+                    Text('Vitesse actuelle',
+                        style: TextStyle(color: _kTextSec, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: _kPrimary,
+                        height: 1,
+                        letterSpacing: -1.5,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8, left: 6),
+                      child: Text('km/h',
+                          style: TextStyle(
+                              color: _kTextSec,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 80,
+            height: 80,
+            child: CustomPaint(
+              painter: _ArcGaugePainter(fraction: speedFraction),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArcGaugePainter extends CustomPainter {
+  const _ArcGaugePainter({required this.fraction});
+  final double fraction;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 6;
+    const startAngle = math.pi * 0.75;
+    const sweepTotal = math.pi * 1.5;
+
+    // Track
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepTotal,
+      false,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.06)
+        ..strokeWidth = 8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Value arc
+    if (fraction > 0) {
+      final paint = Paint()
+        ..shader = const SweepGradient(
+          colors: [Color(0xFF2F80ED), Color(0xFF7C3AED)],
+          startAngle: 0,
+          endAngle: math.pi * 2,
+        ).createShader(Rect.fromCircle(center: center, radius: radius))
+        ..strokeWidth = 8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepTotal * fraction,
+        false,
+        paint,
+      );
+    }
+
+    // Center text
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '${(fraction * 100).toInt()}%',
+        style: const TextStyle(
+          color: _kPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    tp.paint(
+        canvas, center - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArcGaugePainter old) =>
+      old.fraction != fraction;
+}
+
+// ─── Small metric card ────────────────────────────────────────────────────────
+
+class _SmallMetricCard extends StatelessWidget {
+  const _SmallMetricCard({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.icon,
+  });
+  final String label;
+  final String value;
+  final String unit;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: _cardShadow(),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          Row(
+            children: [
+              Icon(icon, size: 12, color: _kTextSec),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(label,
+                    style: const TextStyle(color: _kTextSec, fontSize: 12),
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 value,
-                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, height: 1),
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _kPrimary,
+                    height: 1,
+                    letterSpacing: -0.5),
               ),
-              const SizedBox(width: 8),
               Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(unit, style: const TextStyle(color: Colors.grey, fontSize: 18)),
+                padding: const EdgeInsets.only(bottom: 4, left: 4),
+                child: Text(unit,
+                    style: const TextStyle(
+                        color: _kTextSec, fontSize: 13)),
               ),
             ],
           ),
@@ -159,59 +555,10 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _SpeedGaugeCard extends StatelessWidget {
-  const _SpeedGaugeCard({required this.label, required this.value, required this.unit});
-  final String label;
-  final String value;
-  final String unit;
+// ─── Balance card ─────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-          const SizedBox(height: 24),
-          Center(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 150,
-                  height: 150,
-                  child: CircularProgressIndicator(
-                    value: 0.6,
-                    strokeWidth: 12,
-                    backgroundColor: Colors.black.withOpacity(0.05),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.black),
-                    strokeCap: StrokeCap.round,
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-                    Text(unit, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WeightBalanceCard extends StatelessWidget {
-  const _WeightBalanceCard({
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
     required this.totalWeight,
     required this.leftPercent,
     required this.rightPercent,
@@ -220,45 +567,104 @@ class _WeightBalanceCard extends StatelessWidget {
   final double leftPercent;
   final double rightPercent;
 
+  String get _status {
+    final diff = (leftPercent - 0.5).abs();
+    if (diff < 0.05) return 'Optimal';
+    if (diff < 0.10) return 'Acceptable';
+    return 'Déséquilibré';
+  }
+
+  Color get _statusColor {
+    final diff = (leftPercent - 0.5).abs();
+    if (diff < 0.05) return _kSuccess;
+    if (diff < 0.10) return const Color(0xFFF59E0B);
+    return const Color(0xFFEB5757);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: _cardShadow(),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Poids total', style: TextStyle(color: Colors.grey, fontSize: 14)),
-          const SizedBox(height: 8),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(totalWeight, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              const Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
-                child: Text('kg', style: TextStyle(color: Colors.grey, fontSize: 18)),
+              const Row(
+                children: [
+                  Icon(Icons.balance, size: 14, color: _kTextSec),
+                  SizedBox(width: 6),
+                  Text('Poids & équilibre',
+                      style: TextStyle(color: _kTextSec, fontSize: 13)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _status,
+                  style: TextStyle(
+                    color: _statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          _BalanceBar(label: 'Pied gauche', percent: leftPercent),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                totalWeight,
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: _kPrimary,
+                  height: 1,
+                  letterSpacing: -1,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 5, left: 5),
+                child: Text('kg',
+                    style: TextStyle(color: _kTextSec, fontSize: 16)),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
-          _BalanceBar(label: 'Pied droit', percent: rightPercent),
+          _BalanceRow(label: 'Gauche', percent: leftPercent, color: _kAccent),
+          const SizedBox(height: 10),
+          _BalanceRow(
+              label: 'Droite',
+              percent: rightPercent,
+              color: const Color(0xFF7C3AED)),
         ],
       ),
     );
   }
 }
 
-class _BalanceBar extends StatelessWidget {
-  const _BalanceBar({required this.label, required this.percent});
+class _BalanceRow extends StatelessWidget {
+  const _BalanceRow({
+    required this.label,
+    required this.percent,
+    required this.color,
+  });
   final String label;
   final double percent;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -267,18 +673,22 @@ class _BalanceBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-            Text('${(percent * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(color: _kTextSec, fontSize: 12)),
+            Text('${(percent * 100).toInt()}%',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: _kPrimary)),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: percent,
-            minHeight: 8,
-            backgroundColor: Colors.black.withOpacity(0.05),
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.black54),
+            minHeight: 6,
+            backgroundColor: Colors.black.withValues(alpha: 0.06),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),
       ],

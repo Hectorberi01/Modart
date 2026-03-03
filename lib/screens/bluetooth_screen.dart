@@ -1,13 +1,27 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
 import '../services/bluetooth_service.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const _kPrimary = Color(0xFF1C1F2E);
+const _kAccent  = Color(0xFF2F80ED);
+const _kSuccess = Color(0xFF27AE60);
+const _kDanger  = Color(0xFFEB5757);
+const _kTextSec = Color(0xFF6B7280);
+const _kBg      = Color(0xFFF7F8FA);
+
+List<BoxShadow> _cardShadow() => [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.06),
+        blurRadius: 20,
+        offset: const Offset(0, 4),
+      )
+    ];
+
 class BluetoothScreen extends StatefulWidget {
   const BluetoothScreen({super.key, required this.onContinue});
-
   final VoidCallback onContinue;
 
   @override
@@ -29,19 +43,17 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
     super.initState();
     _startScan();
     _scanResultsSub = FlutterBluePlus.scanResults.listen((results) {
-      for (final result in results) {
-        final id = result.device.remoteId.str;
+      for (final r in results) {
+        final id = r.device.remoteId.str;
         if (!_connectionSubs.containsKey(id)) {
-          _connectionSubs[id] = result.device.connectionState.listen((state) {
+          _connectionSubs[id] = r.device.connectionState.listen((state) {
             if (mounted) setState(() => _connectionStates[id] = state);
           });
         }
       }
     });
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
   }
 
@@ -64,161 +76,226 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: _kBg,
         centerTitle: true,
         title: const Text(
           'Connexion Bluetooth',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _kPrimary),
         ),
       ),
       body: Column(
         children: [
-          const SizedBox(height: 20),
+          // Adapter state
           StreamBuilder<BluetoothAdapterState>(
             stream: _bluetoothService.adapterState,
             initialData: BluetoothAdapterState.unknown,
-            builder: (context, snapshot) {
-              final state = snapshot.data;
-              final isOn = state == BluetoothAdapterState.on;
-              return Column(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: isOn ? const Color(0xFFE3F2FD) : const Color(0xFFF5F5F7),
-                    child: Icon(
-                      isOn ? Icons.bluetooth : Icons.bluetooth_disabled,
-                      color: isOn ? Colors.blue : Colors.grey,
-                      size: 30,
-                    ),
+            builder: (_, snap) {
+              final isOn = snap.data == BluetoothAdapterState.on;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isOn
+                      ? _kSuccess.withValues(alpha: 0.08)
+                      : Colors.orange.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isOn
+                        ? _kSuccess.withValues(alpha: 0.3)
+                        : Colors.orange.withValues(alpha: 0.3),
                   ),
-                  if (!isOn && state != BluetoothAdapterState.unknown)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: TextButton(
-                        onPressed: () => ph.openAppSettings(),
-                        child: const Text(
-                          'Activer le Bluetooth / Paramètres',
-                          style: TextStyle(color: Colors.redAccent, fontSize: 13, decoration: TextDecoration.underline),
-                        ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isOn ? _kSuccess : Colors.orange,
                       ),
                     ),
-                ],
+                    const SizedBox(width: 10),
+                    Text(
+                      isOn ? 'Bluetooth activé' : 'Bluetooth désactivé',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: isOn ? _kSuccess : Colors.orange.shade700,
+                      ),
+                    ),
+                    if (!isOn && snap.data != BluetoothAdapterState.unknown) ...[
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => ph.openAppSettings(),
+                        child: Text(
+                          'Activer →',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               );
             },
           ),
+
+          // Permission banner
           if (_scanResult == ScanStartResult.permissionPermanentlyDenied ||
               _scanResult == ScanStartResult.permissionDenied)
             _PermissionBanner(
               permanent: _scanResult == ScanStartResult.permissionPermanentlyDenied,
               onRetry: _startScan,
             ),
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 20),
+
+          // Search bar
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TextField(
               controller: _searchController,
+              style: const TextStyle(fontSize: 14, color: _kPrimary),
               decoration: InputDecoration(
-                hintText: 'Rechercher des appareils',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                hintText: 'Rechercher un appareil...',
+                hintStyle: const TextStyle(color: _kTextSec, fontSize: 14),
+                prefixIcon: const Icon(Icons.search, color: _kTextSec, size: 20),
                 filled: true,
-                fillColor: const Color(0xFFF5F5F7),
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: _kAccent, width: 1.5),
+                ),
               ),
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Section header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Appareils détectés à proximité',
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                  'APPAREILS DÉTECTÉS',
+                  style: TextStyle(
+                    color: _kTextSec,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
+                  ),
                 ),
                 StreamBuilder<bool>(
                   stream: _bluetoothService.isScanning,
                   initialData: false,
-                  builder: (context, snapshot) {
-                    if (snapshot.data == true) {
+                  builder: (_, snap) {
+                    if (snap.data == true) {
                       return const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent),
                       );
                     }
-                    return IconButton(
-                      icon: const Icon(Icons.refresh, size: 18, color: Colors.grey),
-                      onPressed: _startScan,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    return GestureDetector(
+                      onTap: _startScan,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.refresh, size: 14, color: _kAccent),
+                          SizedBox(width: 4),
+                          Text('Actualiser',
+                              style: TextStyle(fontSize: 12, color: _kAccent, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
                     );
                   },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 10),
+
+          // List
           Expanded(
             child: StreamBuilder<List<ScanResult>>(
               stream: _bluetoothService.scanResults,
               initialData: const [],
-              builder: (context, snapshot) {
-                final allResults = snapshot.data ?? [];
-                final results = allResults.where((r) {
+              builder: (_, snap) {
+                final all = snap.data ?? [];
+                final results = all.where((r) {
                   if (_hiddenDeviceIds.contains(r.device.remoteId.str)) return false;
                   if (_searchQuery.isEmpty) return true;
                   return r.device.platformName.toLowerCase().contains(_searchQuery);
                 }).toList()
                   ..sort((a, b) {
-                    final aConnected = _connectionStates[a.device.remoteId.str] ==
+                    final aC = _connectionStates[a.device.remoteId.str] ==
                         BluetoothConnectionState.connected;
-                    final bConnected = _connectionStates[b.device.remoteId.str] ==
+                    final bC = _connectionStates[b.device.remoteId.str] ==
                         BluetoothConnectionState.connected;
-                    if (aConnected && !bConnected) return -1;
-                    if (!aConnected && bConnected) return 1;
+                    if (aC && !bC) return -1;
+                    if (!aC && bC) return 1;
                     return 0;
                   });
 
                 if (results.isEmpty) {
-                  return const Center(
-                    child: Text('Aucun appareil trouvé', style: TextStyle(color: Colors.grey)),
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.bluetooth_searching, size: 48, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                        const Text('Aucun appareil détecté',
+                            style: TextStyle(color: _kTextSec, fontSize: 14)),
+                      ],
+                    ),
                   );
                 }
+
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final result = results[index];
-                    final deviceName = result.device.platformName.isNotEmpty
-                        ? result.device.platformName
+                  itemBuilder: (_, i) {
+                    final r = results[i];
+                    final name = r.device.platformName.isNotEmpty
+                        ? r.device.platformName
                         : 'Appareil inconnu';
-                    final deviceId = result.device.remoteId.str;
+                    final id = r.device.remoteId.str;
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 10),
                       child: Dismissible(
-                        key: ValueKey(deviceId),
+                        key: ValueKey(id),
                         direction: DismissDirection.endToStart,
-                        onDismissed: (_) => setState(() => _hiddenDeviceIds.add(deviceId)),
+                        onDismissed: (_) => setState(() => _hiddenDeviceIds.add(id)),
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 20),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade400,
-                            borderRadius: BorderRadius.circular(20),
+                            color: _kDanger,
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
+                          child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
                         ),
                         child: _DeviceCard(
-                          name: deviceName,
-                          device: result.device,
-                          rssi: result.rssi,
+                          name: name,
+                          device: r.device,
+                          rssi: r.rssi,
                           service: _bluetoothService,
                         ),
                       ),
@@ -228,33 +305,31 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
               },
             ),
           ),
+
+          // Bottom action
           Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
             child: Column(
               children: [
                 const Text(
-                  'Assurez-vous que le Bluetooth est activé\net que la chaussure est allumée',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
+                  'Assurez-vous que la chaussure est allumée',
+                  style: TextStyle(color: _kTextSec, fontSize: 12),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 54,
                   child: ElevatedButton(
                     onPressed: widget.onContinue,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: _kPrimary,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
                       elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text(
-                      'Continuer',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text('Continuer',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -266,6 +341,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   }
 }
 
+// ─── Permission Banner ────────────────────────────────────────────────────────
+
 class _PermissionBanner extends StatelessWidget {
   const _PermissionBanner({required this.permanent, required this.onRetry});
   final bool permanent;
@@ -274,49 +351,41 @@ class _PermissionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
+        color: const Color(0xFFFFF8E7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.5)),
+        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFF856404), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Permissions Bluetooth refusées',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF856404), fontSize: 13),
-              ),
+              Icon(Icons.warning_amber_rounded, color: Color(0xFF92400E), size: 15),
+              SizedBox(width: 7),
+              Text('Permissions Bluetooth refusées',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF92400E), fontSize: 12)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             permanent
-                ? 'Les permissions ont été refusées définitivement. Activez-les manuellement dans les Réglages iOS.'
-                : 'Les permissions Bluetooth et Localisation sont nécessaires pour scanner les appareils.',
-            style: const TextStyle(color: Color(0xFF856404), fontSize: 12, height: 1.4),
+                ? 'Activez-les dans Réglages > Modar.'
+                : 'Bluetooth et Localisation sont nécessaires.',
+            style: const TextStyle(color: Color(0xFF92400E), fontSize: 12, height: 1.4),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: permanent ? () => ph.openAppSettings() : onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF856404),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-              child: Text(
-                permanent ? 'Ouvrir les Réglages' : 'Réessayer',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: permanent ? () => ph.openAppSettings() : onRetry,
+            child: Text(
+              permanent ? 'Ouvrir les Réglages →' : 'Réessayer →',
+              style: const TextStyle(
+                  color: Color(0xFF92400E),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline),
             ),
           ),
         ],
@@ -324,6 +393,8 @@ class _PermissionBanner extends StatelessWidget {
     );
   }
 }
+
+// ─── Device Card ──────────────────────────────────────────────────────────────
 
 enum DeviceStatus { disconnected, connecting, connected, outOfRange }
 
@@ -334,7 +405,6 @@ class _DeviceCard extends StatefulWidget {
     required this.rssi,
     required this.service,
   });
-
   final String name;
   final BluetoothDevice device;
   final int rssi;
@@ -346,19 +416,18 @@ class _DeviceCard extends StatefulWidget {
 
 class _DeviceCardState extends State<_DeviceCard> {
   DeviceStatus _status = DeviceStatus.disconnected;
-  late final StreamSubscription<BluetoothConnectionState> _connectionSub;
+  late final StreamSubscription<BluetoothConnectionState> _sub;
 
   @override
   void initState() {
     super.initState();
-    _connectionSub = widget.device.connectionState.listen((state) {
+    _sub = widget.device.connectionState.listen((state) {
       if (!mounted) return;
       setState(() {
         switch (state) {
           case BluetoothConnectionState.connected:
             _status = DeviceStatus.connected;
           case BluetoothConnectionState.connecting:
-            _status = DeviceStatus.connecting;
           case BluetoothConnectionState.disconnecting:
             _status = DeviceStatus.connecting;
           case BluetoothConnectionState.disconnected:
@@ -370,123 +439,118 @@ class _DeviceCardState extends State<_DeviceCard> {
 
   @override
   void dispose() {
-    _connectionSub.cancel();
+    _sub.cancel();
     super.dispose();
+  }
+
+  double get _rssiPercent => ((widget.rssi + 100) / 70).clamp(0.0, 1.0);
+
+  Color get _rssiColor {
+    if (_rssiPercent > 0.65) return _kSuccess;
+    if (_rssiPercent > 0.35) return const Color(0xFFF59E0B);
+    return _kDanger;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isOutOfRange = _status == DeviceStatus.outOfRange;
-
-    return Opacity(
-      opacity: isOutOfRange ? 0.5 : 1.0,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F7),
-          borderRadius: BorderRadius.circular(20),
-          border: _status == DeviceStatus.connected
-              ? Border.all(color: Colors.black.withOpacity(0.05))
-              : null,
+    final isConnected = _status == DeviceStatus.connected;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isConnected ? _kSuccess.withValues(alpha: 0.4) : Colors.transparent,
+          width: 1.5,
         ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.directions_walk, color: Colors.black54, size: 24),
+        boxShadow: _cardShadow(),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: isConnected
+                      ? _kSuccess.withValues(alpha: 0.1)
+                      : _kBg,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: Icon(Icons.directions_walk, size: 20,
+                    color: isConnected ? _kSuccess : _kTextSec),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14, color: _kPrimary)),
+                    const SizedBox(height: 2),
+                    Text(widget.device.remoteId.str,
+                        style: const TextStyle(color: _kTextSec, fontSize: 11)),
+                  ],
+                ),
+              ),
+              if (isConnected)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _kSuccess.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        widget.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      Text(
-                        'ID: ${widget.device.remoteId.str}',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
+                      Icon(Icons.check_circle, size: 11, color: _kSuccess),
+                      SizedBox(width: 3),
+                      Text('Connecté',
+                          style: TextStyle(color: _kSuccess, fontSize: 10, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _status == DeviceStatus.connected
-                        ? Colors.black
-                        : Colors.grey.withOpacity(0.3),
-                  ),
-                ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Signal gauge
+          Row(
+            children: [
+              const Text('Signal', style: TextStyle(color: _kTextSec, fontSize: 11)),
+              const Spacer(),
+              Text('${widget.rssi} dBm', style: const TextStyle(color: _kTextSec, fontSize: 11)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: _rssiPercent,
+              minHeight: 4,
+              backgroundColor: Colors.black.withValues(alpha: 0.06),
+              valueColor: AlwaysStoppedAnimation<Color>(_rssiColor),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _SignalIndicator(rssi: widget.rssi),
-                const SizedBox(width: 12),
-                Text(
-                  '${widget.rssi} dBm',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _DeviceActionButton(
-              status: _status,
-              onConnect: () => widget.service.connect(widget.device),
-              onDisconnect: () => widget.service.disconnect(widget.device),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 14),
+          // Action button
+          _ActionButton(
+            status: _status,
+            onConnect: () => widget.service.connect(widget.device),
+            onDisconnect: () => widget.service.disconnect(widget.device),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SignalIndicator extends StatelessWidget {
-  const _SignalIndicator({required this.rssi});
-  final int rssi;
-
-  int get _bars {
-    if (rssi >= -60) return 4;
-    if (rssi >= -70) return 3;
-    if (rssi >= -80) return 2;
-    return 1;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final activeBars = _bars;
-    return Row(
-      children: List.generate(4, (index) {
-        return Container(
-          width: 3,
-          height: 8 + (index * 3),
-          margin: const EdgeInsets.only(right: 2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(2),
-            color: index < activeBars
-                ? Colors.black
-                : Colors.black.withOpacity(0.2),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _DeviceActionButton extends StatelessWidget {
-  const _DeviceActionButton({
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
     required this.status,
     required this.onConnect,
     required this.onDisconnect,
@@ -501,85 +565,65 @@ class _DeviceActionButton extends StatelessWidget {
       case DeviceStatus.disconnected:
         return SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 42,
           child: ElevatedButton(
             onPressed: onConnect,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: _kAccent,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Connecter', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Connecter',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         );
       case DeviceStatus.connecting:
         return Container(
           width: double.infinity,
-          height: 48,
+          height: 42,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: _kAccent.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54),
+                width: 14, height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent),
               ),
-              SizedBox(width: 12),
-              Text('Connexion...', style: TextStyle(color: Colors.black54)),
+              SizedBox(width: 10),
+              Text('Connexion...', style: TextStyle(color: _kAccent, fontWeight: FontWeight.w500, fontSize: 13)),
             ],
           ),
         );
       case DeviceStatus.connected:
-        return Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle, color: Colors.black, size: 18),
-                  SizedBox(width: 8),
-                  Text('Connecté avec succès', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black)),
-                ],
-              ),
+        return SizedBox(
+          width: double.infinity,
+          height: 42,
+          child: OutlinedButton(
+            onPressed: onDisconnect,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _kDanger,
+              side: BorderSide(color: _kDanger.withValues(alpha: 0.4)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: onDisconnect,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black.withOpacity(0.05),
-                  foregroundColor: Colors.black,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Déconnecter'),
-              ),
-            ),
-          ],
+            child: const Text('Déconnecter',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+          ),
         );
       case DeviceStatus.outOfRange:
         return Container(
           width: double.infinity,
-          height: 48,
+          height: 42,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: _kBg,
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Center(
-            child: Text('Hors de portée', style: TextStyle(color: Colors.black38)),
+            child: Text('Hors de portée',
+                style: TextStyle(color: _kTextSec, fontSize: 13)),
           ),
         );
     }

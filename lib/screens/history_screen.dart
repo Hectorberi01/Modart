@@ -3,6 +3,20 @@ import 'package:flutter/material.dart';
 import '../models/session.dart';
 import '../services/database_service.dart';
 
+const _kPrimary = Color(0xFF1C1F2E);
+const _kAccent = Color(0xFF2F80ED);
+const _kSuccess = Color(0xFF27AE60);
+const _kBg = Color(0xFFF7F8FA);
+const _kTextSecondary = Color(0xFF6B7280);
+
+List<BoxShadow> _cardShadow() => [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.06),
+        blurRadius: 20,
+        offset: const Offset(0, 4),
+      ),
+    ];
+
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
@@ -11,79 +25,74 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  late Future<List<Session>> _sessionsFuture;
   final DatabaseService _dbService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionsFuture = _dbService.getSessions();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Historique', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black)),
+        backgroundColor: _kBg,
+        title: const Text(
+          'Historique',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: _kPrimary,
+          ),
+        ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.tune, size: 20, color: Colors.black),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: _cardShadow(),
+            ),
+            child: IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.tune_rounded, size: 20, color: _kPrimary),
             ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: FutureBuilder<List<Session>>(
-        future: _dbService.getSessions(),
+        future: _sessionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.black));
+            return const Center(
+              child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2),
+            );
           }
 
           final sessions = snapshot.data ?? [];
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _HistorySummaryCard(sessions: sessions),
-                const SizedBox(height: 24),
-                if (sessions.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40.0),
-                      child: Column(
-                        children: [
-                          Icon(Icons.history, size: 64, color: Colors.grey.shade300),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Aucune session enregistrée',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  ...sessions.map((session) => Column(
-                        children: [
-                          _SessionCard(
-                            title: session.title,
-                            date: session.date,
-                            time: session.time,
-                            duration: session.duration,
-                            distance: session.distance,
-                            avgSpeed: session.avgSpeed,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      )),
-                const SizedBox(height: 24),
-              ],
-            ),
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: _SummaryCard(sessions: sessions),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              if (sessions.isEmpty)
+                const SliverFillRemaining(child: _EmptyState())
+              else
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    child: _SessionList(sessions: sessions),
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -91,14 +100,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class _HistorySummaryCard extends StatelessWidget {
-  const _HistorySummaryCard({required this.sessions});
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.sessions});
   final List<Session> sessions;
 
   @override
   Widget build(BuildContext context) {
     double totalDistance = 0;
-    // Basic duration parsing logic (simplified for the walkthrough)
     for (var s in sessions) {
       final parts = s.distance.split(' ');
       if (parts.isNotEmpty) {
@@ -107,121 +115,213 @@ class _HistorySummaryCard extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: _cardShadow(),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _SummaryItem(label: 'Total', value: '${sessions.length}', unit: 'sessions'),
-          _SummaryItem(label: 'Distance', value: totalDistance.toStringAsFixed(1), unit: 'km total'),
-          _SummaryItem(label: 'Durée', value: '${sessions.length * 40}m', unit: 'estimé'),
+          Expanded(
+            child: _SummaryStat(
+              icon: Icons.directions_walk_rounded,
+              value: '${sessions.length}',
+              label: 'Sessions',
+              color: _kAccent,
+            ),
+          ),
+          Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
+          Expanded(
+            child: _SummaryStat(
+              icon: Icons.route_rounded,
+              value: totalDistance.toStringAsFixed(1),
+              label: 'km total',
+              color: _kSuccess,
+            ),
+          ),
+          Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
+          Expanded(
+            child: _SummaryStat(
+              icon: Icons.timer_rounded,
+              value: '${sessions.length * 40}',
+              label: 'min estimé',
+              color: const Color(0xFFF59E0B),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({required this.label, required this.value, required this.unit});
-  final String label;
+class _SummaryStat extends StatelessWidget {
+  const _SummaryStat({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
   final String value;
-  final String unit;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        Text(unit, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Icon(icon, size: 18, color: color),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: _kPrimary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
       ],
     );
   }
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({
-    required this.title,
-    required this.date,
-    required this.time,
-    required this.duration,
-    required this.distance,
-    required this.avgSpeed,
-  });
-
-  final String title;
-  final String date;
-  final String time;
-  final String duration;
-  final String distance;
-  final String avgSpeed;
+class _SessionList extends StatelessWidget {
+  const _SessionList({required this.sessions});
+  final List<Session> sessions;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: _cardShadow(),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          for (int i = 0; i < sessions.length; i++) ...[
+            _SessionRow(session: sessions[i]),
+            if (i < sessions.length - 1)
+              const Divider(
+                height: 1,
+                indent: 72,
+                endIndent: 16,
+                color: Color(0xFFF3F4F6),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                '$date  •  $time',
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _SessionMetric(label: 'Durée', value: duration),
-              _SessionMetric(label: 'Distance', value: distance),
-              _SessionMetric(label: 'Vitesse moy.', value: avgSpeed),
-            ],
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _SessionMetric extends StatelessWidget {
-  const _SessionMetric({required this.label, required this.value});
-  final String label;
-  final String value;
+class _SessionRow extends StatelessWidget {
+  const _SessionRow({required this.session});
+  final Session session;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _kAccent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.directions_walk_rounded, color: _kAccent, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: _kPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${session.date}  ·  ${session.time}  ·  ${session.duration}',
+                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                session.distance,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: _kPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                session.avgSpeed,
+                style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFD1D5DB)),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: _cardShadow(),
+            ),
+            child: const Icon(Icons.history_rounded, size: 36, color: Color(0xFFD1D5DB)),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Aucune session',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: _kPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Vos sessions apparaîtront ici\naprès votre première marche.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: _kTextSecondary),
+          ),
+        ],
+      ),
     );
   }
 }
