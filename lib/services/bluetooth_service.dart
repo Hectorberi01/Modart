@@ -66,13 +66,52 @@ class AppBluetoothService {
     await FlutterBluePlus.stopScan();
   }
 
-  Future<void> connect(BluetoothDevice device) async {
+  /*Future<void> connect(BluetoothDevice device) async {
     print("--- AppBluetoothService: Connecting to ${device.remoteId} ---");
     try {
       await device.connect(license: License.free, autoConnect: false);
       print("--- AppBluetoothService: Successfully connected ---");
     } catch (e) {
       print("--- AppBluetoothService: Connection error: $e ---");
+    }
+  }*/
+
+  Future<void> connect(BluetoothDevice device) async {
+    print("--- Connecting to ${device.remoteId} ---");
+
+    try {
+      await device.connect(license: License.free, autoConnect: false);
+
+      print("--- Connected successfully ---");
+
+      // 🔥 Découverte des services
+      List<BluetoothService> services = await device.discoverServices();
+
+      for (BluetoothService service in services) {
+        print("Service found: ${service.uuid}");
+
+        for (BluetoothCharacteristic characteristic
+            in service.characteristics) {
+          print("Characteristic found: ${characteristic.uuid}");
+
+          // Si la caractéristique supporte notifications
+          if (characteristic.properties.notify) {
+            print("Enabling notifications on ${characteristic.uuid}");
+
+            await characteristic.setNotifyValue(true);
+
+            characteristic.onValueReceived.listen((value) {
+              print("📡 Live data received: $value");
+
+              // Si données binaires → convertir en string
+              final decoded = String.fromCharCodes(value);
+              print("Decoded: $decoded");
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print("Connection error: $e");
     }
   }
 
