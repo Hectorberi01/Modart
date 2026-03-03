@@ -1,5 +1,5 @@
-name: modar
-description: "A new Flutter project."
+name: smartsole
+description: "SmartSole — Chaussure connectée pour l'analyse de la marche et la pression plantaire."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -40,6 +40,12 @@ dependencies:
   intl: ^0.20.2
   flutter_blue_plus: ^2.2.1
   permission_handler: ^12.0.1
+  provider: ^6.1.5+1
+  fl_chart: ^1.1.1
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  shared_preferences: ^2.5.4
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
