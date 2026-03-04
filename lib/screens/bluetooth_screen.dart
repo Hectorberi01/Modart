@@ -274,8 +274,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                 final all = snap.data ?? [];
                 final results =
                     all.where((r) {
-                        if (_hiddenDeviceIds.contains(r.device.remoteId.str))
+                        if (_hiddenDeviceIds.contains(r.device.remoteId.str)) {
                           return false;
+                        }
                         if (_searchQuery.isEmpty) return true;
                         return r.device.platformName.toLowerCase().contains(
                           _searchQuery,
@@ -501,11 +502,10 @@ class _DeviceCardState extends State<_DeviceCard> {
         switch (state) {
           case BluetoothConnectionState.connected:
             _status = DeviceStatus.connected;
-          case BluetoothConnectionState.connecting:
-          case BluetoothConnectionState.disconnecting:
-            _status = DeviceStatus.connecting;
           case BluetoothConnectionState.disconnected:
             _status = DeviceStatus.disconnected;
+          default:
+            _status = DeviceStatus.connecting;
         }
       });
     });

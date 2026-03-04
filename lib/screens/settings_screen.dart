@@ -117,7 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: Switch(
                   value: _autoConnect,
                   onChanged: (v) => setState(() => _autoConnect = v),
-                  activeColor: _kAccent,
+                  activeThumbColor: _kAccent,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
@@ -136,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: Switch(
                   value: _hapticFeedback,
                   onChanged: (v) => setState(() => _hapticFeedback = v),
-                  activeColor: _kAccent,
+                  activeThumbColor: _kAccent,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),

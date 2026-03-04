@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -24,7 +25,7 @@ class AppBluetoothService {
       FlutterBluePlus.adapterState;
 
   Future<ScanStartResult> startScan() async {
-    print("--- AppBluetoothService: Starting scan sequence ---");
+    dev.log('Starting scan sequence', name: 'BLE');
 
     if (Platform.isAndroid) {
       final statuses =
@@ -34,7 +35,7 @@ class AppBluetoothService {
             Permission.location,
           ].request();
 
-      statuses.forEach((p, s) => print("$p -> $s"));
+      statuses.forEach((p, s) => dev.log('$p -> $s', name: 'BLE.permissions'));
 
       if (statuses.values.any((s) => s.isPermanentlyDenied)) {
         return ScanStartResult.permissionPermanentlyDenied;
@@ -66,52 +67,42 @@ class AppBluetoothService {
     await FlutterBluePlus.stopScan();
   }
 
-  /*Future<void> connect(BluetoothDevice device) async {
-    print("--- AppBluetoothService: Connecting to ${device.remoteId} ---");
-    try {
-      await device.connect(license: License.free, autoConnect: false);
-      print("--- AppBluetoothService: Successfully connected ---");
-    } catch (e) {
-      print("--- AppBluetoothService: Connection error: $e ---");
-    }
-  }*/
-
   Future<void> connect(BluetoothDevice device) async {
-    print("--- Connecting to ${device.remoteId} ---");
+    dev.log('Connecting to ${device.remoteId}', name: 'BLE');
 
     try {
       await device.connect(license: License.free, autoConnect: false);
 
-      print("--- Connected successfully ---");
+      dev.log('Connected successfully', name: 'BLE');
 
       // 🔥 Découverte des services
-      List<BluetoothService> services = await device.discoverServices();
+      final List<BluetoothService> services = await device.discoverServices();
 
-      for (BluetoothService service in services) {
-        print("Service found: ${service.uuid}");
+      for (final BluetoothService service in services) {
+        dev.log('Service found: ${service.uuid}', name: 'BLE');
 
-        for (BluetoothCharacteristic characteristic
+        for (final BluetoothCharacteristic characteristic
             in service.characteristics) {
-          print("Characteristic found: ${characteristic.uuid}");
+          dev.log('Characteristic: ${characteristic.uuid}', name: 'BLE');
 
           // Si la caractéristique supporte notifications
           if (characteristic.properties.notify) {
-            print("Enabling notifications on ${characteristic.uuid}");
-
+            dev.log(
+              'Enabling notifications on ${characteristic.uuid}',
+              name: 'BLE',
+            );
             await characteristic.setNotifyValue(true);
 
             characteristic.onValueReceived.listen((value) {
-              print("📡 Live data received: $value");
-
-              // Si données binaires → convertir en string
+              dev.log('Live data received: $value', name: 'BLE.data');
               final decoded = String.fromCharCodes(value);
-              print("Decoded: $decoded");
+              dev.log('Decoded: $decoded', name: 'BLE.data');
             });
           }
         }
       }
     } catch (e) {
-      print("Connection error: $e");
+      dev.log('Connection error: $e', name: 'BLE', error: e);
     }
   }
 

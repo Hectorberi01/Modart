@@ -1,15 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
-import '../widgets/glass_bento_card.dart';
-import '../widgets/mesh_gradient_background.dart';
 import '../models/user_profile.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OnboardingScreen — Première impression SmartSole
-//
-// Mesh gradient + logo + 3 cartes profil glassmorphism (Urban/Kids/Pro).
-// Sélection profil → auth → flow principal.
-// ─────────────────────────────────────────────────────────────────────────────
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -20,83 +12,80 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
-
+  late AnimationController _heroController;
+  late Animation<double> _heroScale;
+  late Animation<double> _heroOpacity;
   late PageController _pageController;
   int _currentPage = 0;
-
   ProfileType? _selectedProfile;
+
+  static const int _totalPages = 3;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _logoController = AnimationController(
+    _heroController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
+    _heroScale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _heroController, curve: Curves.easeOutBack),
     );
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _heroOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _logoController,
+        parent: _heroController,
         curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
       ),
     );
-    _logoController.forward();
+    _heroController.forward();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _logoController.dispose();
+    _heroController.dispose();
     super.dispose();
   }
 
-  void _onProfileSelected(ProfileType type) {
-    setState(() => _selectedProfile = type);
+  void _onProfileSelected(ProfileType type) =>
+      setState(() => _selectedProfile = type);
+
+  bool get _canContinue {
+    if (_currentPage < _totalPages - 1) return true;
+    return _selectedProfile != null;
   }
 
   void _onContinue() {
-    if (_currentPage < 2) {
+    if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
       );
       return;
     }
-
     if (_selectedProfile == null) return;
+    _navigateToRegister();
+  }
 
-    // Build a minimal mock UserProfile matching the chosen type,
-    // so AuthScreen can personalise its greeting.
+  void _navigateToRegister() {
     final profile = UserProfile(
-      email: switch (_selectedProfile!) {
-        ProfileType.urban => 'thomas@smartsole.io',
-        ProfileType.kids => 'parent@smartsole.io',
-        ProfileType.pro => 'dr.amara@cabinet.fr',
-      },
+      email: '',
       profileType: _selectedProfile!,
-      displayName: switch (_selectedProfile!) {
-        ProfileType.urban => 'Thomas',
-        ProfileType.kids => 'Marie',
-        ProfileType.pro => 'Dr. Amara',
-      },
       childProfile:
           _selectedProfile == ProfileType.kids
-              ? const ChildProfile(
-                nickname: 'Lucas',
-                birthMonth: 3,
-                birthYear: 2018,
-              )
+              ? const ChildProfile(nickname: '', birthMonth: 1, birthYear: 2019)
               : null,
     );
+    Navigator.pushNamed(context, '/register', arguments: profile);
+  }
 
-    // Navigate to auth screen — it will redirect to /home on success.
-    Navigator.pushReplacementNamed(context, '/auth', arguments: profile);
+  void _navigateToLogin() {
+    final profile = UserProfile(
+      email: '',
+      profileType: _selectedProfile ?? ProfileType.urban,
+    );
+    Navigator.pushNamed(context, '/auth', arguments: profile);
   }
 
   @override
@@ -104,214 +93,198 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final TextTheme textTheme = Theme.of(context).textTheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return MeshGradientBackground(
-      biState: BIState.teal,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    onPageChanged: (idx) => setState(() => _currentPage = idx),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      // --- Page 1 : Vision & Valeur ---
-                      _buildValuePropSlide(
-                        context,
-                        isDark,
-                        icon: Icons.hiking,
-                        title: 'SmartSole',
-                        subtitle: 'La biomécanique dans votre quotidien',
-                        desc:
-                            'Une chaussure connectée qui rend visible la pression et la marche. '
-                            'Comprendre, prévenir, agir.',
-                      ),
-                      // --- Page 2 : BI & Data ---
-                      _buildValuePropSlide(
-                        context,
-                        isDark,
-                        icon: Icons.insights_rounded,
-                        title: 'Business Intelligence',
-                        subtitle: 'Des données claires et actionnables',
-                        desc:
-                            'Visualisez vos appuis, identifiez vos hotspots et suivez '
-                            'l\'évolution de votre démarche.',
-                      ),
-                      // --- Page 3 : Profil ---
-                      _buildProfileSelectionSlide(context, isDark, textTheme),
-                    ],
-                  ),
+    return Scaffold(
+      backgroundColor: SmartSoleColors.darkBg,
+      body: Stack(
+        children: [
+          // Mesh background glow
+          Positioned(
+            top: -120,
+            left: -80,
+            child: Container(
+              width: 380,
+              height: 380,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    SmartSoleColors.biNormal.withValues(alpha: 0.12),
+                    Colors.transparent,
+                  ],
                 ),
-
-                // ── Indicateurs de pages ────────────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    3,
-                    (index) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentPage == index ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color:
-                            _currentPage == index
-                                ? SmartSoleColors.biNormal
-                                : (isDark ? Colors.white24 : Colors.black26),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // ── Bouton Continuer ──────────────────────────────────────
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  opacity:
-                      (_currentPage < 2 || _selectedProfile != null)
-                          ? 1.0
-                          : 0.4,
-                  child: Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow:
-                          (_currentPage < 2 || _selectedProfile != null)
-                              ? [
-                                BoxShadow(
-                                  color: SmartSoleColors.biNormal.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ]
-                              : null,
-                    ),
-                    child: ElevatedButton(
-                      onPressed:
-                          (_currentPage < 2 || _selectedProfile != null)
-                              ? _onContinue
-                              : null,
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _currentPage == 2
-                                ? 'Démarrer l\'expérience'
-                                : 'Suivant',
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
-        ),
+          Positioned(
+            bottom: -100,
+            right: -60,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    SmartSoleColors.biNavy.withValues(alpha: 0.10),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+
+                  // ── PageView ──────────────────────────────────────────
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (i) => setState(() => _currentPage = i),
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        // Page 1 — Value prop : biomécanique
+                        _buildSlidePage1(context, isDark, textTheme),
+                        // Page 2 — Value prop : données actionnables
+                        _buildSlidePage2(context, isDark, textTheme),
+                        // Page 3 — Sélection du profil
+                        _buildProfileSelectionSlide(context, isDark, textTheme),
+                      ],
+                    ),
+                  ),
+
+                  // ── Dots indicateurs ──────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _totalPages,
+                      (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentPage == i ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color:
+                              _currentPage == i
+                                  ? SmartSoleColors.biNormal
+                                  : Colors.white.withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Bouton principal ──────────────────────────────────
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: _canContinue ? 1.0 : 0.4,
+                    child: Container(
+                      width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        gradient: SmartSoleColors.heroGradient,
+                        boxShadow:
+                            _canContinue
+                                ? [
+                                  BoxShadow(
+                                    color: SmartSoleColors.biNormal.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                    blurRadius: 22,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ]
+                                : null,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(28),
+                          onTap: _canContinue ? _onContinue : null,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _currentPage == _totalPages - 1
+                                    ? 'Créer mon compte'
+                                    : 'Suivant',
+                                style: const TextStyle(
+                                  fontFamily: 'Articulat CF',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                _currentPage == _totalPages - 1
+                                    ? Icons.person_add_outlined
+                                    : Icons.arrow_forward,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // ── Lien connexion ────────────────────────────────────
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Déjà un compte ? ',
+                        style: TextStyle(
+                          fontFamily: 'Articulat CF',
+                          fontSize: 14,
+                          color: SmartSoleColors.textSecondaryDark.withValues(
+                            alpha: 0.8,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _navigateToLogin,
+                        style: TextButton.styleFrom(
+                          foregroundColor: SmartSoleColors.biTeal,
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Se connecter',
+                          style: TextStyle(
+                            fontFamily: 'Articulat CF',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: SmartSoleColors.biTeal,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // SLIDE 1 & 2 : VALUE PROP
-  // ────────────────────────────────────────────────────────────────────────
+  // ── Page 1 : biomécanique au quotidien ──────────────────────────────────
 
-  Widget _buildValuePropSlide(
-    BuildContext context,
-    bool isDark, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String desc,
-  }) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AnimatedBuilder(
-          animation: _logoController,
-          builder: (context, child) {
-            return Opacity(
-              opacity: _logoOpacity.value,
-              child: Transform.scale(scale: _logoScale.value, child: child),
-            );
-          },
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [SmartSoleColors.biNormal, SmartSoleColors.biTeal],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: SmartSoleColors.biNormal.withValues(alpha: 0.4),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Icon(icon, size: 48, color: Colors.white),
-          ),
-        ),
-        const SizedBox(height: 40),
-        Text(
-          title,
-          style: textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: -1,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          subtitle,
-          style: textTheme.titleMedium?.copyWith(
-            color: SmartSoleColors.biTeal,
-            fontWeight: FontWeight.w600,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-        Text(
-          desc,
-          style: textTheme.bodyLarge?.copyWith(
-            color:
-                isDark
-                    ? SmartSoleColors.textSecondaryDark
-                    : SmartSoleColors.textSecondaryLight,
-            height: 1.5,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────────
-  // SLIDE 3 : PROFILE SELECTION
-  // ────────────────────────────────────────────────────────────────────────
-
-  Widget _buildProfileSelectionSlide(
+  Widget _buildSlidePage1(
     BuildContext context,
     bool isDark,
     TextTheme textTheme,
@@ -319,44 +292,194 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // Illustration
+        AnimatedBuilder(
+          animation: _heroController,
+          builder:
+              (context, child) => Opacity(
+                opacity: _heroOpacity.value,
+                child: Transform.scale(scale: _heroScale.value, child: child),
+              ),
+          child: Image.asset(
+            'assets/images/logo.png',
+            height: 220,
+            width: 280,
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(height: 48),
+
+        // Titre
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback:
+              (bounds) => SmartSoleColors.heroGradient.createShader(bounds),
+          child: Text(
+            'SmartSole',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Sous-titre
         Text(
-          'Choisissez votre profil',
-          style: textTheme.headlineMedium,
+          'La biomécanique dans votre quotidien',
+          style: textTheme.titleMedium?.copyWith(
+            color: SmartSoleColors.biTeal,
+            fontWeight: FontWeight.w600,
+          ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 32),
-        _ProfileCard(
-          type: ProfileType.urban,
-          title: 'Actif Urbain',
-          subtitle: 'Running, marche quotidienne, prévention',
-          icon: Icons.directions_walk,
-          isSelected: _selectedProfile == ProfileType.urban,
-          onTap: () => _onProfileSelected(ProfileType.urban),
-        ),
-        const SizedBox(height: 12),
-        _ProfileCard(
-          type: ProfileType.kids,
-          title: 'Parent — Suivi Enfant',
-          subtitle: 'Développement de la marche, IMM, pédiatrique',
-          icon: Icons.child_care,
-          isSelected: _selectedProfile == ProfileType.kids,
-          onTap: () => _onProfileSelected(ProfileType.kids),
-        ),
-        const SizedBox(height: 12),
-        _ProfileCard(
-          type: ProfileType.pro,
-          title: 'Professionnel Santé',
-          subtitle: 'Diagnostic, rapport PDF, suivi patient J0→J30',
-          icon: Icons.medical_services_outlined,
-          isSelected: _selectedProfile == ProfileType.pro,
-          onTap: () => _onProfileSelected(ProfileType.pro),
+        const SizedBox(height: 20),
+
+        // Description
+        Text(
+          'Une chaussure connectée qui rend visible la pression et la marche. '
+          'Comprendre, prévenir, agir.',
+          style: textTheme.bodyLarge?.copyWith(
+            color: SmartSoleColors.textSecondaryDark,
+            height: 1.55,
+          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
+
+  // ── Page 2 : données actionnables ───────────────────────────────────────
+
+  Widget _buildSlidePage2(
+    BuildContext context,
+    bool isDark,
+    TextTheme textTheme,
+  ) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Illustration
+        SizedBox(
+          width: 280,
+          height: 240,
+          child: Center(
+            child: SvgPicture.asset(
+              'assets/images/walk_nature.svg',
+              height: 520,
+              width: 480,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 48),
+
+        // Titre
+        Text(
+          'Marchez en toute conscience',
+          style: textTheme.headlineLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 10),
+
+        // Sous-titre
+        Text(
+          'Des données claires et actionnables',
+          style: textTheme.titleMedium?.copyWith(
+            color: SmartSoleColors.biTeal,
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+
+        // Description
+        Text(
+          "Visualisez vos appuis, identifiez vos hotspots et suivez l'évolution "
+          'de votre démarche.',
+          style: textTheme.bodyLarge?.copyWith(
+            color: SmartSoleColors.textSecondaryDark,
+            height: 1.55,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  // ── Page 3 : sélection du profil ────────────────────────────────────────
+
+  Widget _buildProfileSelectionSlide(
+    BuildContext context,
+    bool isDark,
+    TextTheme textTheme,
+  ) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+
+          // Titre
+          Text(
+            'Quel est votre profil ?',
+            style: textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Choisissez le mode adapté à vos besoins.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: SmartSoleColors.textSecondaryDark,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Cartes profil
+          _ProfileCard(
+            type: ProfileType.urban,
+            title: 'Actif Urbain',
+            subtitle: 'Running, marche quotidienne, prévention',
+            icon: Icons.directions_walk,
+            accent: SmartSoleColors.biNormal,
+            isSelected: _selectedProfile == ProfileType.urban,
+            onTap: () => _onProfileSelected(ProfileType.urban),
+          ),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            type: ProfileType.kids,
+            title: 'Parent — Suivi Enfant',
+            subtitle: 'Développement de la marche, IMM, pédiatrique',
+            icon: Icons.child_care,
+            accent: SmartSoleColors.biTeal,
+            isSelected: _selectedProfile == ProfileType.kids,
+            onTap: () => _onProfileSelected(ProfileType.kids),
+          ),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            type: ProfileType.pro,
+            title: 'Professionnel Santé',
+            subtitle: 'Diagnostic, rapport PDF, suivi patient J0→J30',
+            icon: Icons.medical_services_outlined,
+            accent: SmartSoleColors.biNavy,
+            isSelected: _selectedProfile == ProfileType.pro,
+            onTap: () => _onProfileSelected(ProfileType.pro),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 }
 
-// ─── Profile Card ─────────────────────────────────────────────────────────
+// ── Profile Card (glass inline) ─────────────────────────────────────────────
 
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
@@ -364,6 +487,7 @@ class _ProfileCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.accent,
     required this.isSelected,
     required this.onTap,
   });
@@ -372,78 +496,126 @@ class _ProfileCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final Color accent;
   final bool isSelected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final Color accent = _accentForType(type);
-
-    return GlassBentoCard(
-      onTap: onTap,
-      accentColor: isSelected ? accent : null,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          // Icône
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color:
-                  isSelected
-                      ? accent.withValues(alpha: 0.2)
-                      : accent.withValues(alpha: 0.08),
-            ),
-            child: Icon(icon, size: 22, color: accent),
-          ),
-          const SizedBox(width: 12),
-          // Texte
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
+        color:
+            isSelected
+                ? accent.withValues(alpha: 0.10)
+                : Colors.white.withValues(alpha: 0.05),
+        border: Border.all(
+          color:
+              isSelected
+                  ? accent.withValues(alpha: 0.70)
+                  : Colors.white.withValues(alpha: 0.10),
+          width: isSelected ? 1.5 : 1.0,
+        ),
+        boxShadow:
+            isSelected
+                ? [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.18),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+                : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
+          splashColor: accent.withValues(alpha: 0.12),
+          highlightColor: accent.withValues(alpha: 0.06),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                // Icône avec fond coloré
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color:
+                        isSelected
+                            ? accent.withValues(alpha: 0.22)
+                            : accent.withValues(alpha: 0.10),
+                  ),
+                  child: Icon(icon, size: 22, color: accent),
+                ),
+                const SizedBox(width: 14),
+
+                // Textes
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color:
+                              isSelected
+                                  ? Colors.white
+                                  : SmartSoleColors.textPrimaryDark,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: SmartSoleColors.textSecondaryDark,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+
+                // Checkmark
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? accent : Colors.transparent,
+                    border: Border.all(
+                      color:
+                          isSelected
+                              ? accent
+                              : Colors.white.withValues(alpha: 0.25),
+                      width: 2,
+                    ),
+                  ),
+                  child:
+                      isSelected
+                          ? const Icon(
+                            Icons.check,
+                            size: 14,
+                            color: Colors.white,
+                          )
+                          : null,
+                ),
               ],
             ),
           ),
-          // Check
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isSelected ? accent : Colors.transparent,
-              border: Border.all(
-                color: isSelected ? accent : Colors.white24,
-                width: 2,
-              ),
-            ),
-            child:
-                isSelected
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                    : null,
-          ),
-        ],
+        ),
       ),
     );
-  }
-
-  Color _accentForType(ProfileType type) {
-    return switch (type) {
-      ProfileType.urban => SmartSoleColors.biNormal,
-      ProfileType.kids => SmartSoleColors.biTeal,
-      ProfileType.pro => SmartSoleColors.biNavy,
-    };
   }
 }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SmartSole Design System v2 — "Biomechanics Observatory"
 //
@@ -23,18 +21,20 @@ abstract final class SmartSoleColors {
   static const Color lightSurface = Color(0xFFFFFFFF);
 
   // ── Palette BI principale ────────────────────────────────────────────────
-  static const Color biNormal = Color(0xFF10B981); // Émeraude vibrant
-  static const Color biWarning = Color(0xFFF59E0B); // Ambre chaud
-  static const Color biAlert = Color(0xFFEF4444); // Rouge signal
-  static const Color biTeal = Color(0xFF06B6D4); // Cyan-teal
+  static const Color biNormal = Color(
+    0xFFE25230,
+  ); // Orange-rouge corail (shifté)
+  static const Color biWarning = Color(0xFFE55C2E); // Orange soutenu
+  static const Color biAlert = Color(0xFFE78E39); // Orange clair
+  static const Color biTeal = Color(0xFFE6BF74); // Jaune sable
   static const Color biNavy = Color(0xFF6366F1); // Indigo pro
   static const Color biSuccess = Color(0xFF22C55E); // Vert franc
 
   // ── Accents & Highlights ─────────────────────────────────────────────────
-  static const Color accent = Color(0xFF818CF8); // Indigo clair
-  static const Color accentSoft = Color(0xFF3B82F6); // Bleu doux
-  static const Color glowGreen = Color(0xFF34D399); // Lueur verte
-  static const Color glowCyan = Color(0xFF22D3EE); // Lueur cyan
+  static const Color accent = Color(0xFFE55C2E); // Orange soutenu
+  static const Color accentSoft = Color(0xFFE6BF74); // Jaune sable
+  static const Color glowGreen = Color(0xFFE78E39); // Lueur orange clair
+  static const Color glowCyan = Color(0xFFE6BF74); // Lueur sable
 
   // ── Texte ────────────────────────────────────────────────────────────────
   static const Color textPrimaryDark = Color(0xFFF1F5F9);
@@ -310,21 +310,24 @@ abstract final class SmartSoleTheme {
 
     return TextTheme(
       // Display — grands chiffres éditoriaux (scores, KPI hero)
-      displayLarge: GoogleFonts.outfit(
+      displayLarge: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 72,
         fontWeight: FontWeight.w800,
         color: primary,
         letterSpacing: -2.5,
         height: 1.0,
       ),
-      displayMedium: GoogleFonts.outfit(
+      displayMedium: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 48,
         fontWeight: FontWeight.w700,
         color: primary,
         letterSpacing: -1.5,
         height: 1.1,
       ),
-      displaySmall: GoogleFonts.outfit(
+      displaySmall: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: primary,
@@ -332,75 +335,87 @@ abstract final class SmartSoleTheme {
         height: 1.1,
       ),
       // Headlines — titres de sections
-      headlineLarge: GoogleFonts.outfit(
+      headlineLarge: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: primary,
         letterSpacing: -0.5,
       ),
-      headlineMedium: GoogleFonts.outfit(
+      headlineMedium: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 22,
         fontWeight: FontWeight.w700,
         color: primary,
         letterSpacing: -0.3,
       ),
-      headlineSmall: GoogleFonts.outfit(
+      headlineSmall: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: primary,
         letterSpacing: -0.2,
       ),
       // Titles — labels de cards
-      titleLarge: GoogleFonts.inter(
+      titleLarge: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: primary,
         letterSpacing: -0.1,
       ),
-      titleMedium: GoogleFonts.inter(
+      titleMedium: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: primary,
       ),
-      titleSmall: GoogleFonts.inter(
+      titleSmall: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 12,
         fontWeight: FontWeight.w600,
         color: secondary,
         letterSpacing: 0.8,
       ),
       // Body — texte courant
-      bodyLarge: GoogleFonts.inter(
+      bodyLarge: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: primary,
         height: 1.5,
       ),
-      bodyMedium: GoogleFonts.inter(
+      bodyMedium: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: primary,
         height: 1.5,
       ),
-      bodySmall: GoogleFonts.inter(
+      bodySmall: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: secondary,
         height: 1.4,
       ),
       // Labels — chips, badges
-      labelLarge: GoogleFonts.inter(
+      labelLarge: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: primary,
         letterSpacing: 0.3,
       ),
-      labelMedium: GoogleFonts.inter(
+      labelMedium: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: secondary,
         letterSpacing: 0.3,
       ),
-      labelSmall: GoogleFonts.inter(
+      labelSmall: TextStyle(
+        fontFamily: 'Articulat CF',
         fontSize: 10,
         fontWeight: FontWeight.w500,
         color: secondary,

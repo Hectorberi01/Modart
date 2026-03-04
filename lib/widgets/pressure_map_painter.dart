@@ -1,23 +1,15 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/pressure_data.dart';
 import '../theme/app_theme.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PressureMapPainter v5 — Forme anatomique fidèle à la référence
-//
-// La référence montre (vue plantaire, vu d'en bas) :
-//   • Avant-pied (haut) : LARGE, bord extérieur très bombé
-//   • Voûte (milieu interne) : concavité profonde en S
-//   • Talon (bas) : arrondi, PLUS ÉTROIT que l'avant-pied
-//   • Orteils : ovales SÉPARÉS du corps du pied, décroissants du gros au petit
-//
-// Gradients pression (CdC) : vert émeraude → ambre → orange → rouge profond
-// ─────────────────────────────────────────────────────────────────────────────
-
 const double kHotspotThreshold = 0.38;
 
-// ── Widget conteneur ────────────────────────────────────────────────────────
+const double _kNatX0 = 5.0;
+const double _kNatY0 = 80.0;
+const double _kNatBW = 100.0;
+const double _kNatBH = 150.0;
 
 class PressureMapWidget extends StatefulWidget {
   const PressureMapWidget({
@@ -60,46 +52,23 @@ class _PressureMapWidgetState extends State<PressureMapWidget>
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return RepaintBoundary(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // L'image de référence demandée par l'utilisateur
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
-            child: Image.asset(
-              'assets/images/feet_reference.png',
-              height: widget.height * 0.85,
-              fit: BoxFit.contain,
-              errorBuilder:
-                  (context, error, stackTrace) => const Icon(
-                    Icons.broken_image,
-                    size: 100,
-                    color: Colors.grey,
-                  ),
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder:
+            (_, __) => CustomPaint(
+              painter: _PressureMapPainter(
+                leftPressure: widget.leftPressure,
+                rightPressure: widget.rightPressure,
+                showHotspotLabels: widget.showHotspotLabels,
+                animValue: _ctrl.value,
+                isDark: isDark,
+              ),
+              size: Size(double.infinity, widget.height),
             ),
-          ),
-          // Les hotspots overlay
-          AnimatedBuilder(
-            animation: _ctrl,
-            builder:
-                (_, __) => CustomPaint(
-                  painter: _PressureMapPainter(
-                    leftPressure: widget.leftPressure,
-                    rightPressure: widget.rightPressure,
-                    showHotspotLabels: widget.showHotspotLabels,
-                    animValue: _ctrl.value,
-                    isDark: isDark,
-                  ),
-                  size: Size(double.infinity, widget.height),
-                ),
-          ),
-        ],
       ),
     );
   }
 }
-
-// ── Painter principal ────────────────────────────────────────────────────────
 
 class _PressureMapPainter extends CustomPainter {
   _PressureMapPainter({
@@ -118,85 +87,192 @@ class _PressureMapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // ── Proportions ────────────────────────────────────────────────────────
-    const double widthRatio = 0.40; // rapport largeur/hauteur du pied
+    const double widthRatio = 0.40;
     final double footH = size.height * 0.88;
     final double footW = footH * widthRatio;
     final double gap = size.width * 0.05;
-
-    // Origines (coin supérieur-gauche de la bounding box du CORPS du pied)
-    // Les orteils débordent au-dessus de cette bounding box
-    final double toeAreaH = footH * 0.14; // hauteur réservée aux orteils
+    final double toeAreaH = footH * 0.38;
     final double bodyH = footH - toeAreaH;
 
-    final Offset leftBodyOrigin = Offset(
+    final Offset leftO = Offset(
       size.width / 2 - footW - gap,
       (size.height - footH) / 2 + toeAreaH,
     );
-    final Offset rightBodyOrigin = Offset(
+    final Offset rightO = Offset(
       size.width / 2 + gap,
       (size.height - footH) / 2 + toeAreaH,
     );
 
     _drawFoot(
       canvas,
-      leftBodyOrigin,
+      leftO,
       footW,
       bodyH,
       leftPressure,
-      toeAreaH: toeAreaH,
+      toeAreaH,
       isLeft: true,
     );
     _drawFoot(
       canvas,
-      rightBodyOrigin,
+      rightO,
       footW,
       bodyH,
       rightPressure,
-      toeAreaH: toeAreaH,
+      toeAreaH,
       isLeft: false,
     );
 
-    // Labels G / D
-    _drawLabel(
-      canvas,
-      leftBodyOrigin.translate(footW / 2, -toeAreaH - 12),
-      'G',
-    );
-    _drawLabel(
-      canvas,
-      rightBodyOrigin.translate(footW / 2, -toeAreaH - 12),
-      'D',
-    );
+    _drawLabel(canvas, leftO.translate(footW / 2, -toeAreaH - 10), 'G');
+    _drawLabel(canvas, rightO.translate(footW / 2, -toeAreaH - 10), 'D');
   }
-
-  // ── Dessin d'un pied complet ─────────────────────────────────────────────
 
   void _drawFoot(
     Canvas canvas,
-    Offset bodyOrigin,
+    Offset o,
     double w,
     double bodyH,
-    PressureData pressure, {
-    required double toeAreaH,
+    PressureData pressure,
+    double toeAreaH, {
     required bool isLeft,
   }) {
-    // ── 1. Zones de pression (dégradés radiaux) ───────────────────────────
+    final double sx = w / _kNatBW;
+    final double sy = bodyH / _kNatBH;
+
+    final Float64List m =
+        isLeft
+            ? Float64List.fromList([
+              sx,
+              0,
+              0,
+              0,
+              0,
+              sy,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              o.dx - _kNatX0 * sx,
+              o.dy - _kNatY0 * sy,
+              0,
+              1,
+            ])
+            : Float64List.fromList([
+              -sx,
+              0,
+              0,
+              0,
+              0,
+              sy,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              o.dx + w + _kNatX0 * sx,
+              o.dy - _kNatY0 * sy,
+              0,
+              1,
+            ]);
+
+    final Path clipPath = _buildNativeSole().transform(m);
+
+    final Color silFill = (isDark ? Colors.white : const Color(0xFF374151))
+        .withValues(alpha: isDark ? 0.10 : 0.06);
+    final Color silStroke = (isDark ? Colors.white : const Color(0xFF374151))
+        .withValues(alpha: isDark ? 0.22 : 0.18);
+
+    canvas.drawPath(clipPath, Paint()..color = silFill);
+
     canvas.save();
-    for (final zone in _pressureZones(bodyOrigin, w, bodyH, pressure, isLeft)) {
-      _paintZone(canvas, zone);
+    canvas.clipPath(clipPath);
+    for (final z in _pressureZones(o, w, bodyH, pressure, isLeft)) {
+      _paintZone(canvas, z);
     }
     canvas.restore();
 
-    // ── 2. Badges hotspot ─────────────────────────────────────────────────
+    canvas.drawPath(
+      clipPath,
+      Paint()
+        ..color = silStroke
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+
+    _drawToes(canvas, o, w, bodyH, toeAreaH, isLeft, silFill, silStroke);
+
     if (showHotspotLabels) {
-      for (final z in _pressureZones(bodyOrigin, w, bodyH, pressure, isLeft)) {
+      for (final z in _pressureZones(o, w, bodyH, pressure, isLeft)) {
         if (z.value >= kHotspotThreshold) _drawBadge(canvas, z);
       }
     }
   }
 
-  // ── Zones de pression ────────────────────────────────────────────────────
+  Path _buildNativeSole() {
+    return Path()
+      ..moveTo(35, 80)
+      ..quadraticBezierTo(55, 65, 85, 75)
+      ..quadraticBezierTo(105, 90, 75, 140)
+      ..quadraticBezierTo(65, 160, 70, 190)
+      ..quadraticBezierTo(75, 230, 45, 230)
+      ..quadraticBezierTo(15, 230, 25, 180)
+      ..quadraticBezierTo(35, 130, 15, 100)
+      ..quadraticBezierTo(5, 80, 35, 80)
+      ..close();
+  }
+
+  void _drawToes(
+    Canvas canvas,
+    Offset o,
+    double w,
+    double bodyH,
+    double toeAreaH,
+    bool isLeft,
+    Color fill,
+    Color stroke,
+  ) {
+    final double sx = w / _kNatBW;
+    final double sy = bodyH / _kNatBH;
+
+    const List<List<double>> nativeToes = [
+      [80, 35, 30, 45, -0.15],
+      [50, 32, 22, 34, -0.05],
+      [28, 42, 18, 28, 0.10],
+      [10, 60, 16, 22, 0.30],
+      [-2, 82, 14, 18, 0.50],
+    ];
+
+    for (final t in nativeToes) {
+      final double absCx =
+          isLeft
+              ? o.dx + (t[0] - _kNatX0) * sx
+              : o.dx + w - (t[0] - _kNatX0) * sx;
+      final double absCy = o.dy + (t[1] - _kNatY0) * sy;
+      final double tw = t[2] * sx;
+      final double th = t[3] * sy;
+      final double angle = isLeft ? t[4] : -t[4];
+
+      canvas.save();
+      canvas.translate(absCx, absCy);
+      canvas.rotate(angle);
+      final Rect r = Rect.fromCenter(
+        center: Offset.zero,
+        width: tw,
+        height: th,
+      );
+      canvas.drawOval(r, Paint()..color = fill);
+      canvas.drawOval(
+        r,
+        Paint()
+          ..color = stroke
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2,
+      );
+      canvas.restore();
+    }
+  }
 
   List<_Zone> _pressureZones(
     Offset o,
@@ -205,7 +281,6 @@ class _PressureMapPainter extends CustomPainter {
     PressureData p,
     bool isLeft,
   ) {
-    // Côté de la voûte : interne
     final double archX = isLeft ? w * 0.72 : w * 0.28;
     return [
       _Zone(
@@ -232,37 +307,31 @@ class _PressureMapPainter extends CustomPainter {
     ];
   }
 
-  // ── Rendu d'une zone (glow radial multi-couche) ──────────────────────────
-
   void _paintZone(Canvas canvas, _Zone zone) {
-    final Color color = _pressureColor(zone.value);
+    final Color color = SmartSoleColors.getPressureColor(zone.value);
     double rx = zone.rx;
     double ry = zone.ry;
 
-    // Pulsation pour les hotspots
     if (zone.value >= kHotspotThreshold) {
-      final double p = 0.93 + 0.07 * math.sin(animValue * 2 * math.pi);
-      rx *= p;
-      ry *= p;
+      final double pulse = 0.93 + 0.07 * math.sin(animValue * 2 * math.pi);
+      rx *= pulse;
+      ry *= pulse;
     }
 
-    // Opacité proportionnelle à la valeur (pas de glow si pression nulle)
     final double baseOpacity = (zone.value * 1.4).clamp(0.0, 0.85);
     if (baseOpacity < 0.04) return;
 
     for (int layer = 0; layer < 3; layer++) {
       final double spread = 1.0 + layer * 0.40;
       final double layerOpacity = (baseOpacity * (0.65 - layer * 0.20)).clamp(
-        0,
+        0.0,
         0.85,
       );
-
       final Rect rect = Rect.fromCenter(
         center: zone.center,
         width: rx * 2 * spread,
         height: ry * 2 * spread,
       );
-
       canvas.drawOval(
         rect,
         Paint()
@@ -278,19 +347,15 @@ class _PressureMapPainter extends CustomPainter {
     }
   }
 
-  // ── Badge hotspot ────────────────────────────────────────────────────────
-
   void _drawBadge(Canvas canvas, _Zone zone) {
     final double pulse = 0.60 + 0.40 * math.sin(animValue * 2 * math.pi);
-    final Color c = _pressureColor(zone.value);
+    final Color c = SmartSoleColors.getPressureColor(zone.value);
     const double bw = 36, bh = 18;
-
     final RRect rr = RRect.fromRectAndRadius(
       Rect.fromCenter(center: zone.center, width: bw, height: bh),
       const Radius.circular(9),
     );
     canvas.drawRRect(rr, Paint()..color = c.withValues(alpha: pulse * 0.85));
-
     final TextPainter tp = TextPainter(
       text: TextSpan(
         text: '${(zone.value * 100).toInt()}%',
@@ -308,8 +373,6 @@ class _PressureMapPainter extends CustomPainter {
       Offset(zone.center.dx - tp.width / 2, zone.center.dy - tp.height / 2),
     );
   }
-
-  // ── Label G / D ─────────────────────────────────────────────────────────
 
   void _drawLabel(Canvas canvas, Offset pos, String text) {
     final TextPainter tp = TextPainter(
@@ -330,14 +393,6 @@ class _PressureMapPainter extends CustomPainter {
     tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy));
   }
 
-  // ── Palette de couleurs CdC ──────────────────────────────────────────────
-  //
-  // Gradients chauds : émeraude → ambre → orange → rouge profond
-
-  Color _pressureColor(double v) {
-    return SmartSoleColors.getPressureColor(v);
-  }
-
   @override
   bool shouldRepaint(covariant _PressureMapPainter old) =>
       old.animValue != animValue ||
@@ -345,8 +400,6 @@ class _PressureMapPainter extends CustomPainter {
       old.rightPressure != rightPressure ||
       old.isDark != isDark;
 }
-
-// ── Data structs ─────────────────────────────────────────────────────────────
 
 class _Zone {
   const _Zone({

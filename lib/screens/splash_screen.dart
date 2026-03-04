@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../theme/app_theme.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SplashScreen — Écran de démarrage SmartSole
+//
+// Fond dégradé biNormal → biTeal avec le logo SVG blanc centré.
+// Durée 2.5 s puis callback onFinished.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.onFinished});
@@ -12,24 +21,24 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
-  late Animation<double> _slideAnim;
+  late Animation<double> _scaleAnim;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
     );
 
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slideAnim = Tween<double>(
-      begin: 20,
-      end: 0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _scaleAnim = Tween<double>(
+      begin: 0.75,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
-    Future.delayed(const Duration(seconds: 3), widget.onFinished);
+    Future.delayed(const Duration(milliseconds: 2600), widget.onFinished);
   }
 
   @override
@@ -41,92 +50,123 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: AnimatedBuilder(
-                  animation: _slideAnim,
-                  builder:
-                      (_, child) => Transform.translate(
-                        offset: Offset(0, _slideAnim.value),
-                        child: child,
-                      ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo
-                      Container(
-                        width: 88,
-                        height: 88,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1C1F2E),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF1C1F2E,
-                              ).withValues(alpha: 0.25),
-                              blurRadius: 32,
-                              offset: const Offset(0, 12),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              SmartSoleColors.darkBg,
+              Color(0xFF111827),
+              Color(0xFF0D1B2A),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Center(
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: ScaleTransition(
+                    scale: _scaleAnim,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // ── Logo principal ─────────────────────────────────
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                SmartSoleColors.biNormal,
+                                SmartSoleColors.biWarning,
+                              ],
                             ),
-                          ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: SmartSoleColors.biNormal.withValues(
+                                  alpha: 0.45,
+                                ),
+                                blurRadius: 40,
+                                spreadRadius: 4,
+                                offset: const Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: SvgPicture.asset(
+                              'assets/images/Logo_Blanc.svg',
+                              colorFilter: const ColorFilter.mode(
+                                Colors.white,
+                                BlendMode.srcIn,
+                              ),
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.directions_walk,
-                          size: 42,
-                          color: Colors.white,
+                        const SizedBox(height: 30),
+                        // ── Nom de l'app ───────────────────────────────────
+                        Text(
+                          'SmartSole',
+                          style: TextStyle(
+                            fontFamily: 'Articulat CF',
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            color: SmartSoleColors.textPrimaryDark,
+                            letterSpacing: -1.0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 28),
-                      const Text(
-                        'SmartStep',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF111827),
-                          letterSpacing: -0.5,
+                        const SizedBox(height: 8),
+                        Text(
+                          'Analyse biomécanique intelligente',
+                          style: TextStyle(
+                            fontFamily: 'Articulat CF',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: SmartSoleColors.textSecondaryDark,
+                            letterSpacing: 0.2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Analyse biomécanique intelligente',
-                        style: TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-                      _PulsingDots(),
-                    ],
+                        const SizedBox(height: 52),
+                        _PulsingDots(),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const Positioned(
-              bottom: 32,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Text(
-                  'Technologie · Performance · Précision',
-                  style: TextStyle(
-                    color: Color(0xFF9CA3AF),
-                    fontSize: 11,
-                    letterSpacing: 1.2,
+              // ── Tagline bas de page ────────────────────────────────────
+              Positioned(
+                bottom: 28,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Text(
+                    'TECHNOLOGIE · PERFORMANCE · PRÉCISION',
+                    style: TextStyle(
+                      fontFamily: 'Articulat CF',
+                      color: SmartSoleColors.textTertiaryDark,
+                      fontSize: 10,
+                      letterSpacing: 2.0,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ─── Dots de chargement animés ──────────────────────────────────────────────
 
 class _PulsingDots extends StatefulWidget {
   @override
@@ -163,14 +203,14 @@ class _PulsingDotsState extends State<_PulsingDots>
             final t = ((_ctrl.value - i * 0.25) % 1.0).clamp(0.0, 1.0);
             final scale = 0.6 + 0.4 * (1 - (t * 2 - 1).abs());
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 5),
               child: Transform.scale(
                 scale: scale,
                 child: Container(
-                  width: 8,
-                  height: 8,
+                  width: 7,
+                  height: 7,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF2F80ED),
+                    color: SmartSoleColors.biNormal,
                     shape: BoxShape.circle,
                   ),
                 ),

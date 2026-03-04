@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'models/user_profile.dart';
+import 'providers/auth_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/live_dashboard_screen.dart';
 import 'screens/session_summary_screen.dart';
 import 'screens/history_trends_screen.dart';
 import 'screens/imm_report_screen.dart';
+import 'screens/pro_dashboard_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/bluetooth_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/registration_journey_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SmartSole — Entry Point
@@ -19,8 +27,13 @@ import 'screens/profile_screen.dart';
 // MultiProvider root, dark theme par défaut, navigation avec BottomNav.
 // ─────────────────────────────────────────────────────────────────────────────
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables before Firebase init
+  await dotenv.load(fileName: ".env");
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -32,7 +45,10 @@ void main() {
 
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => ThemeProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
       child: const SmartSoleApp(),
     ),
   );
@@ -68,7 +84,7 @@ class SmartSoleApp extends StatelessWidget {
           title: 'SmartSole',
           debugShowCheckedModeBanner: false,
           theme: themeProvider.theme,
-          initialRoute: '/onboarding',
+          initialRoute: '/splash',
           onGenerateRoute: _generateRoute,
           onUnknownRoute: (_) => _fadeRoute(const HomeShell(), '/home'),
         );
@@ -79,6 +95,8 @@ class SmartSoleApp extends StatelessWidget {
   /// Custom page transitions — fade + slight slide for every route.
   static Route<dynamic> _generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case '/splash':
+        return _fadeRoute(const _AuthGate(), settings.name!);
       case '/onboarding':
         return _fadeRoute(const OnboardingScreen(), settings.name!);
       case '/auth':
@@ -86,6 +104,15 @@ class SmartSoleApp extends StatelessWidget {
         final profile = settings.arguments as UserProfile?;
         if (profile != null) {
           return _fadeRoute(AuthScreen(profile: profile), settings.name!);
+        }
+        return _fadeRoute(const OnboardingScreen(), '/onboarding');
+      case '/register':
+        final profile = settings.arguments as UserProfile?;
+        if (profile != null) {
+          return _fadeRoute(
+            RegistrationJourneyScreen(initialProfile: profile),
+            settings.name!,
+          );
         }
         return _fadeRoute(const OnboardingScreen(), '/onboarding');
       case '/pairing':
@@ -183,7 +210,7 @@ class _HomeShellState extends State<HomeShell>
       const HistoryTrendsScreen(),
     ];
     if (_profileType == ProfileType.pro) {
-      base.add(const IMMReportScreen());
+      base.add(const ProDashboardScreen());
     }
     base.add(const ProfileScreen());
     return base;
@@ -203,11 +230,13 @@ class _HomeShellState extends State<HomeShell>
       _NavItemData(icon: Icons.timeline, label: 'Tendances'),
     ];
     if (_profileType == ProfileType.pro) {
-      base.add(_NavItemData(icon: Icons.visibility, label: 'IMM'));
+      base.add(const _NavItemData(icon: Icons.medical_services, label: 'Pro'));
     }
-    base.add(_NavItemData(icon: Icons.person_outline, label: 'Profil'));
+    base.add(const _NavItemData(icon: Icons.person_outline, label: 'Profil'));
     return base;
   }
+
+  bool _hasAutoConnected = false;
 
   @override
   void didChangeDependencies() {
@@ -216,6 +245,23 @@ class _HomeShellState extends State<HomeShell>
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ProfileType) {
       _profileType = args;
+    } else if (args is Map) {
+      if (args['profileType'] is ProfileType) {
+        _profileType = args['profileType'];
+      }
+      if (args['autoConnect'] == true && !_hasAutoConnected) {
+        _hasAutoConnected = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) =>
+                      BluetoothScreen(onContinue: () => Navigator.pop(context)),
+            ),
+          );
+        });
+      }
     }
   }
 
@@ -460,6 +506,86 @@ class _NavItemState extends State<_NavItem>
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Auth Gate — Splash + redirection selon état Firebase ────────────────────
+//
+// Affiche le SplashScreen pendant l'initialisation (min 2600 ms).
+// Navigue uniquement une fois les deux conditions réunies :
+//   1. splashDone  → le délai visuel du splash est écoulé
+//   2. auth.isInitialized → authStateChanges a émis ET le profil Firestore est chargé
+//
+// Redirige vers :
+//   • /home        si l'utilisateur est déjà connecté (session persistante)
+//   • /onboarding  sinon
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AuthGate extends StatefulWidget {
+  const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  bool _splashDone = false;
+
+  void _onSplashFinished() {
+    final auth = context.read<AuthProvider>();
+    if (auth.isInitialized) {
+      _navigate(auth);
+    } else {
+      // Firebase pas encore prêt : afficher un loader, naviguer quand prêt
+      setState(() => _splashDone = true);
+    }
+  }
+
+  void _navigate(AuthProvider auth) {
+    if (!mounted) return;
+    if (auth.isAuthenticated) {
+      Navigator.of(context).pushReplacementNamed(
+        '/home',
+        arguments: auth.userProfile?.profileType ?? ProfileType.urban,
+      );
+    } else {
+      Navigator.of(context).pushReplacementNamed('/onboarding');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_splashDone) {
+      return SplashScreen(onFinished: _onSplashFinished);
+    }
+
+    // Splash terminé mais Firebase pas encore initialisé → loader minimal
+    return Consumer<AuthProvider>(
+      builder: (_, auth, __) {
+        if (!auth.isInitialized) {
+          return const Scaffold(
+            backgroundColor: SmartSoleColors.darkBg,
+            body: Center(
+              child: CircularProgressIndicator(
+                color: SmartSoleColors.biNormal,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        }
+        // Naviguer au prochain frame (on est dans un build)
+        WidgetsBinding.instance.addPostFrameCallback((_) => _navigate(auth));
+        return const Scaffold(
+          backgroundColor: SmartSoleColors.darkBg,
+          body: Center(
+            child: CircularProgressIndicator(
+              color: SmartSoleColors.biNormal,
+              strokeWidth: 2,
+            ),
+          ),
+        );
+      },
     );
   }
 }

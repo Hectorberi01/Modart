@@ -32,6 +32,8 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
     'Asymétrie %',
   ];
 
+  int _selectedDuration = 30;
+
   @override
   void initState() {
     super.initState();
@@ -225,13 +227,49 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
                             style: textTheme.titleLarge,
                           ),
                           const Spacer(),
-                          const MetricInfoButton(metric: MetricCatalog.hotspot),
+                          DropdownButton<int>(
+                            value: _selectedDuration,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: SmartSoleColors.biTeal,
+                              size: 18,
+                            ),
+                            dropdownColor:
+                                isDark
+                                    ? SmartSoleColors.darkCard
+                                    : SmartSoleColors.lightSurface,
+                            underline: const SizedBox(),
+                            style: textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            onChanged: (int? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedDuration = newValue;
+                                });
+                              }
+                            },
+                            items: const [
+                              DropdownMenuItem(
+                                value: 7,
+                                child: Text('7 sessions'),
+                              ),
+                              DropdownMenuItem(
+                                value: 15,
+                                child: Text('15 sessions'),
+                              ),
+                              DropdownMenuItem(
+                                value: 30,
+                                child: Text('30 sessions'),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '30 dernières sessions — distribution plantaire',
+                      '$_selectedDuration dernières sessions — distribution plantaire',
                       style: textTheme.bodySmall?.copyWith(
                         color:
                             isDark
@@ -384,21 +422,24 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
 
   Widget _buildZoneDistributionChart(bool isDark) {
     // Genere des données de répartition zone (forefoot/midfoot/heel)
-    // à partir de sessions mocknées.
-    final List<(double ff, double mf, double hl)> data = List.generate(30, (i) {
-      // Thème Thomas : avant-pied souvent surchargé
-      final double base = 0.10 + (i / 30) * 0.08;
-      final double ff = (0.45 + base + (i.isEven ? 0.08 : -0.04)).clamp(
-        0.0,
-        0.99,
-      );
-      final double mf = (0.20 - base * 0.5 + (i.isOdd ? 0.04 : -0.02)).clamp(
-        0.0,
-        0.40,
-      );
-      final double hl = (1.0 - ff - mf).clamp(0.01, 0.60);
-      return (ff, mf, hl);
-    });
+    // à partir de sessions mocknées selon la durée sélectionnée.
+    final List<(double ff, double mf, double hl)> data = List.generate(
+      _selectedDuration,
+      (i) {
+        // Thème Thomas : avant-pied souvent surchargé
+        final double base = 0.10 + (i / _selectedDuration) * 0.08;
+        final double ff = (0.45 + base + (i.isEven ? 0.08 : -0.04)).clamp(
+          0.0,
+          0.99,
+        );
+        final double mf = (0.20 - base * 0.5 + (i.isOdd ? 0.04 : -0.02)).clamp(
+          0.0,
+          0.40,
+        );
+        final double hl = (1.0 - ff - mf).clamp(0.01, 0.60);
+        return (ff, mf, hl);
+      },
+    );
 
     // One segment = one bar of the stacked chart
     final List<BarChartGroupData> groups = List.generate(data.length, (i) {
@@ -455,7 +496,7 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              interval: 10,
+              interval: _selectedDuration > 15 ? 10 : 5,
               getTitlesWidget: (v, _) {
                 final int session = v.toInt() + 1;
                 return Padding(

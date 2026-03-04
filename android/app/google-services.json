@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "567915411020",
+    "project_id": "smartsole-5812b",
+    "storage_bucket": "smartsole-5812b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:567915411020:android:36b6e6f9fd857560d266e9",
+        "android_client_info": {
+          "package_name": "com.hector.modar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVAMIDMwhc_1a-7j1cueydNCH_FaPCtJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

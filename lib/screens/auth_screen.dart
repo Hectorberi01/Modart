@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
+import '../providers/auth_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AuthScreen v1 — Authentification Profile-Aware
+// AuthScreen v3 — Connexion uniquement (sign-in only)
 //
-// L'écran de connexion s'adapte selon le profil sélectionné à l'onboarding :
+// Comportement selon le profil :
+//   • Urban   → Email + password (connexion)
+//   • Kids    → PIN 4 chiffres (connexion)
+//   • Pro     → Email + password + code cabinet (connexion)
 //
-//   • Urban   → Connexion email/password classique
-//   • Kids    → PIN Parent 4 chiffres (protection enfant)
-//   • Pro     → Connexion identifiant professionnel + code cabinet
-//
-// Sur succès : navigation vers HomeShell avec le ProfileType en argument.
+// L'inscription est gérée par /register → RegistrationJourneyScreen.
+// Gestion d'erreurs Firebase traduite en français via AuthService.translateError.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AuthScreen extends StatefulWidget {
@@ -35,13 +38,15 @@ class _AuthScreenState extends State<AuthScreen>
   final _passCtrl = TextEditingController();
   final _proCodeCtrl = TextEditingController();
 
-  // PIN for kids mode
+  // Mot de passe affiché / masqué
+  bool _obscurePass = true;
+
+  // PIN kids (4 chiffres)
   final List<String> _pinDigits = ['', '', '', ''];
   int _pinCursor = 0;
 
-  bool _loading = false;
-  bool _obscurePass = true;
-  String? _errorMsg;
+  // Email envoyé pour reset
+  bool _resetSent = false;
 
   @override
   void initState() {
@@ -69,54 +74,54 @@ class _AuthScreenState extends State<AuthScreen>
 
   ProfileType get _type => widget.profile.profileType;
 
-  // ── Simulate async auth ──────────────────────────────────────────────────
+  // ── Authentification principale ──────────────────────────────────────────
 
   Future<void> _authenticate() async {
-    setState(() {
-      _errorMsg = null;
-      _loading = true;
-    });
+    if (!(_formKey.currentState?.validate() ?? true)) return;
+    final auth = context.read<AuthProvider>();
+    auth.clearError();
 
-    // Simulate network delay (400ms)
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    // Mock validation
-    bool valid = false;
-    switch (_type) {
-      case ProfileType.urban:
-        valid = _emailCtrl.text.contains('@') && _passCtrl.text.length >= 4;
-        break;
-      case ProfileType.kids:
-        valid = _pinDigits.join() == '1234' || _pinDigits.join().length == 4;
-        break;
-      case ProfileType.pro:
-        valid =
-            _emailCtrl.text.contains('@') &&
-            _passCtrl.text.length >= 4 &&
-            _proCodeCtrl.text.isNotEmpty;
-        break;
+    if (_type == ProfileType.pro) {
+      final code = _proCodeCtrl.text.trim();
+      if (code.isEmpty) {
+        _showSnack('Veuillez saisir votre code cabinet.');
+        return;
+      }
+      final validCode = await auth.validateCabinetCode(code);
+      if (!mounted) return;
+      if (!validCode) {
+        _showSnack('Code cabinet invalide ou inexistant.');
+        return;
+      }
     }
 
-    if (!mounted) return;
+    final success = await auth.signIn(
+      _emailCtrl.text.trim(),
+      _passCtrl.text,
+    );
 
-    if (valid) {
-      // ── Navigate to home with profile context ──────────────────────────
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: _type);
-    } else {
-      setState(() {
-        _loading = false;
-        _errorMsg =
-            _type == ProfileType.kids
-                ? 'Code incorrect. Essayez 1234 pour la démo.'
-                : 'Identifiants incorrects. Vérifiez vos informations.';
-      });
-      HapticFeedback.mediumImpact();
+    if (success && mounted) {
+      _showSuccessAndNavigate();
     }
   }
 
-  // ── PIN digit tap (kids mode) ─────────────────────────────────────────────
+  // ── Réinitialisation mot de passe ─────────────────────────────────────────
+
+  Future<void> _onForgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _showSnack('Entrez votre email pour réinitialiser le mot de passe.');
+      return;
+    }
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.sendPasswordReset(email);
+    if (ok && mounted) {
+      setState(() => _resetSent = true);
+      _showSnack('Email de réinitialisation envoyé à $email');
+    }
+  }
+
+  // ── Flux Kids ────────────────────────────────────────────────────────────
 
   void _onPinDigit(String d) {
     if (_pinCursor >= 4) return;
@@ -134,9 +139,98 @@ class _AuthScreenState extends State<AuthScreen>
     });
   }
 
-  void _onPinConfirm() {
+  Future<void> _onPinConfirm() async {
     if (_pinCursor < 4) return;
-    _authenticate();
+    final auth = context.read<AuthProvider>();
+    auth.clearError();
+
+    // Connexion kids : PIN (re-auth silencieuse si session expirée)
+    final ok = await auth.signInWithKidsPin(pin: _pinDigits.join());
+    if (ok && mounted) {
+      _showSuccessAndNavigate();
+    } else {
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _pinDigits.fillRange(0, 4, '');
+        _pinCursor = 0;
+      });
+    }
+  }
+
+  // ── Transition succès post-login ────────────────────────────────────────
+
+  void _showSuccessAndNavigate() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        transitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (ctx, animation, _) {
+          // Auto-navigate après 2.5s
+          Future.delayed(const Duration(milliseconds: 2500), () {
+            if (ctx.mounted) {
+              Navigator.of(ctx).pushNamedAndRemoveUntil(
+                '/home',
+                (route) => false,
+                arguments: _type,
+              );
+            }
+          });
+          return FadeTransition(
+            opacity: animation,
+            child: Scaffold(
+              backgroundColor: SmartSoleColors.darkBg,
+              body: SafeArea(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/images/login_or_sing_in_succes.svg',
+                        width: 280,
+                        height: 280,
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Connexion réussie !',
+                        style: TextStyle(
+                          fontFamily: 'Articulat CF',
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Bienvenue sur SmartSole',
+                        style: TextStyle(
+                          fontFamily: 'Articulat CF',
+                          fontSize: 16,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFFF97316),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
   }
 
   // ── UI ────────────────────────────────────────────────────────────────────
@@ -144,15 +238,12 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textTheme = Theme.of(context).textTheme;
+    final tt = Theme.of(context).textTheme;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient mesh
           Positioned.fill(child: _BackgroundMesh(isDark: isDark)),
-
-          // Content
           SafeArea(
             child: FadeTransition(
               opacity: _fade,
@@ -167,15 +258,17 @@ class _AuthScreenState extends State<AuthScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        _buildHeader(textTheme, isDark),
+                        _buildHeader(tt, isDark),
                         const SizedBox(height: 36),
-                        _buildFormCard(textTheme, isDark),
+                        _buildFormCard(tt, isDark),
+                        const SizedBox(height: 16),
+                        _buildErrorBanner(),
+                        const SizedBox(height: 16),
+                        _buildActionButton(tt, isDark),
                         const SizedBox(height: 20),
-                        if (_errorMsg != null) _buildError(),
-                        const SizedBox(height: 24),
-                        _buildAuthButton(textTheme, isDark),
+                        _buildRegisterLink(tt, isDark),
                         const SizedBox(height: 32),
-                        _buildFooter(textTheme, isDark),
+                        _buildFooter(tt, isDark),
                       ],
                     ),
                   ),
@@ -188,19 +281,19 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  // ── Header Section ───────────────────────────────────────────────────────
+  // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(TextTheme tt, bool isDark) {
     final (icon, title, sub) = switch (_type) {
       ProfileType.urban => (
         Icons.directions_walk,
-        'Bon retour, ${widget.profile.displayName ?? widget.profile.email}',
-        'Connectez-vous pour accéder à votre analyse de marche.',
+        'Bon retour',
+        'Connectez-vous pour accéder à votre analyse.',
       ),
       ProfileType.kids => (
         Icons.child_care,
         'Espace Parent',
-        'Entrez votre code PIN pour accéder au suivi de ${widget.profile.childProfile?.nickname ?? "votre enfant"}.',
+        'Entrez votre code PIN pour accéder au suivi.',
       ),
       ProfileType.pro => (
         Icons.local_hospital_outlined,
@@ -211,7 +304,6 @@ class _AuthScreenState extends State<AuthScreen>
 
     return Column(
       children: [
-        // Logo + icon
         Container(
           width: 72,
           height: 72,
@@ -222,7 +314,6 @@ class _AuthScreenState extends State<AuthScreen>
               BoxShadow(
                 color: SmartSoleColors.biTeal.withValues(alpha: 0.30),
                 blurRadius: 24,
-                spreadRadius: 0,
               ),
             ],
           ),
@@ -248,40 +339,37 @@ class _AuthScreenState extends State<AuthScreen>
           sub,
           textAlign: TextAlign.center,
           style: tt.bodyMedium?.copyWith(
-            color:
-                isDark
-                    ? SmartSoleColors.textSecondaryDark
-                    : SmartSoleColors.textSecondaryLight,
+            color: isDark
+                ? SmartSoleColors.textSecondaryDark
+                : SmartSoleColors.textSecondaryLight,
           ),
         ),
       ],
     );
   }
 
-  // ── Form Card ───────────────────────────────────────────────────────────
+  // ── Carte formulaire ─────────────────────────────────────────────────────
 
   Widget _buildFormCard(TextTheme tt, bool isDark) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color:
-              isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.white.withValues(alpha: 0.75),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color:
-                isDark
-                    ? Colors.white.withValues(alpha: 0.10)
-                    : Colors.black.withValues(alpha: 0.07),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.black.withValues(alpha: 0.07),
           ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: switch (_type) {
             ProfileType.urban => _buildEmailForm(isDark),
-            ProfileType.kids => _buildPinPad(isDark),
+            ProfileType.kids => _buildKidsForm(isDark),
             ProfileType.pro => _buildProForm(isDark),
           },
         ),
@@ -289,37 +377,45 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  // ── Urban: Email + Password ────────────────────────────────────────────
+  // ── Formulaire Urban (email + password) ──────────────────────────────────
 
   Widget _buildEmailForm(bool isDark) {
     return Form(
       key: _formKey,
       child: Column(
         children: [
-          _InputField(
+          _AuthField(
             controller: _emailCtrl,
             label: 'Email',
             hint: 'thomas@smartsole.io',
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             isDark: isDark,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Email requis';
+              if (!v.contains('@')) return 'Email invalide';
+              return null;
+            },
           ),
           const SizedBox(height: 16),
-          _InputField(
+          _AuthField(
             controller: _passCtrl,
             label: 'Mot de passe',
             hint: '••••••••',
             icon: Icons.lock_outline,
             obscure: _obscurePass,
             isDark: isDark,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Mot de passe requis';
+              return null;
+            },
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePass ? Icons.visibility_off : Icons.visibility,
                 size: 20,
-                color:
-                    isDark
-                        ? SmartSoleColors.textTertiaryDark
-                        : SmartSoleColors.textTertiaryLight,
+                color: isDark
+                    ? SmartSoleColors.textTertiaryDark
+                    : SmartSoleColors.textTertiaryLight,
               ),
               onPressed: () => setState(() => _obscurePass = !_obscurePass),
             ),
@@ -328,7 +424,90 @@ class _AuthScreenState extends State<AuthScreen>
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () {},
+              onPressed: _onForgotPassword,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                _resetSent
+                    ? 'Email envoyé ✓'
+                    : 'Mot de passe oublié ?',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _resetSent
+                      ? SmartSoleColors.biSuccess
+                      : SmartSoleColors.biTeal,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Formulaire Pro ────────────────────────────────────────────────────────
+
+  Widget _buildProForm(bool isDark) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _AuthField(
+            controller: _emailCtrl,
+            label: 'Email professionnel',
+            hint: 'dr.amara@cabinet.fr',
+            icon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            isDark: isDark,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Email requis';
+              if (!v.contains('@')) return 'Email invalide';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          _AuthField(
+            controller: _passCtrl,
+            label: 'Mot de passe',
+            hint: '••••••••',
+            icon: Icons.lock_outline,
+            obscure: _obscurePass,
+            isDark: isDark,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Mot de passe requis';
+              return null;
+            },
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePass ? Icons.visibility_off : Icons.visibility,
+                size: 20,
+                color: isDark
+                    ? SmartSoleColors.textTertiaryDark
+                    : SmartSoleColors.textTertiaryLight,
+              ),
+              onPressed: () => setState(() => _obscurePass = !_obscurePass),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _AuthField(
+            controller: _proCodeCtrl,
+            label: 'Code cabinet',
+            hint: 'ex: CAB-2026',
+            icon: Icons.local_hospital_outlined,
+            isDark: isDark,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Code cabinet requis';
+              return null;
+            },
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _onForgotPassword,
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
@@ -345,12 +524,16 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  // ── Kids: PIN Pad ─────────────────────────────────────────────────────
+  // ── Formulaire Kids — PIN connexion uniquement ────────────────────────────
+
+  Widget _buildKidsForm(bool isDark) {
+    return _buildPinPad(isDark);
+  }
 
   Widget _buildPinPad(bool isDark) {
     return Column(
       children: [
-        // PIN display
+        // Indicateurs PIN
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(4, (i) {
@@ -362,29 +545,24 @@ class _AuthScreenState extends State<AuthScreen>
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color:
-                    filled
-                        ? SmartSoleColors.biTeal
-                        : (isDark
-                            ? Colors.white.withValues(alpha: 0.15)
-                            : Colors.black.withValues(alpha: 0.15)),
-                boxShadow:
-                    filled
-                        ? [
-                          BoxShadow(
-                            color: SmartSoleColors.biTeal.withValues(
-                              alpha: 0.4,
-                            ),
-                            blurRadius: 8,
-                          ),
-                        ]
-                        : [],
+                color: filled
+                    ? SmartSoleColors.biTeal
+                    : (isDark
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.black.withValues(alpha: 0.15)),
+                boxShadow: filled
+                    ? [
+                        BoxShadow(
+                          color: SmartSoleColors.biTeal.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : [],
               ),
             );
           }),
         ),
         const SizedBox(height: 28),
-        // Number grid
         GridView.count(
           crossAxisCount: 3,
           shrinkWrap: true,
@@ -405,7 +583,11 @@ class _AuthScreenState extends State<AuthScreen>
               isDark: isDark,
               isDelete: true,
             ),
-            _PinKey(digit: '0', onTap: () => _onPinDigit('0'), isDark: isDark),
+            _PinKey(
+              digit: '0',
+              onTap: () => _onPinDigit('0'),
+              isDark: isDark,
+            ),
             _PinKey(
               digit: '✓',
               onTap: _onPinConfirm,
@@ -418,74 +600,133 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  // ── Pro: Email + Password + Cabinet code ─────────────────────────────
+  // ── Bannière d'erreur ─────────────────────────────────────────────────────
 
-  Widget _buildProForm(bool isDark) {
-    return Column(
-      children: [
-        _InputField(
-          controller: _emailCtrl,
-          label: 'Email professionnel',
-          hint: 'dr.amara@cabinet.fr',
-          icon: Icons.email_outlined,
-          keyboardType: TextInputType.emailAddress,
-          isDark: isDark,
-        ),
-        const SizedBox(height: 16),
-        _InputField(
-          controller: _passCtrl,
-          label: 'Mot de passe',
-          hint: '••••••••',
-          icon: Icons.lock_outline,
-          obscure: _obscurePass,
-          isDark: isDark,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscurePass ? Icons.visibility_off : Icons.visibility,
-              size: 20,
-              color:
-                  isDark
-                      ? SmartSoleColors.textTertiaryDark
-                      : SmartSoleColors.textTertiaryLight,
+  Widget _buildErrorBanner() {
+    return Consumer<AuthProvider>(
+      builder: (_, auth, __) {
+        final msg = auth.errorMessage;
+        if (msg == null) return const SizedBox.shrink();
+        return AnimatedOpacity(
+          opacity: msg.isNotEmpty ? 1 : 0,
+          duration: const Duration(milliseconds: 250),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: SmartSoleColors.biAlert.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: SmartSoleColors.biAlert.withValues(alpha: 0.35),
+              ),
             ),
-            onPressed: () => setState(() => _obscurePass = !_obscurePass),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline,
+                    size: 16, color: SmartSoleColors.biAlert),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    msg,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: SmartSoleColors.biAlert,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        _InputField(
-          controller: _proCodeCtrl,
-          label: 'Code cabinet',
-          hint: 'ex: CAB-2026',
-          icon: Icons.local_hospital_outlined,
-          isDark: isDark,
-        ),
-      ],
+        );
+      },
     );
   }
 
-  // ── Error Banner ──────────────────────────────────────────────────────
+  // ── Bouton d'action ───────────────────────────────────────────────────────
 
-  Widget _buildError() {
-    return AnimatedOpacity(
-      opacity: _errorMsg != null ? 1 : 0,
-      duration: const Duration(milliseconds: 250),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: SmartSoleColors.biAlert.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: SmartSoleColors.biAlert.withValues(alpha: 0.35),
+  Widget _buildActionButton(TextTheme tt, bool isDark) {
+    // Kids : le ✓ du PIN pad est l'action principale, bouton masqué
+    if (_type == ProfileType.kids) {
+      return const SizedBox.shrink();
+    }
+
+    return Consumer<AuthProvider>(
+      builder: (_, auth, __) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: SmartSoleColors.heroGradient,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: SmartSoleColors.biTeal.withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ),
-        child: Row(
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap: auth.isLoading ? null : _authenticate,
+              child: Center(
+                child: auth.isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.login_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Se connecter',
+                            style: tt.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Lien inscription ──────────────────────────────────────────────────────
+
+  Widget _buildRegisterLink(TextTheme tt, bool isDark) {
+    return TextButton(
+      onPressed: () =>
+          Navigator.of(context).pushReplacementNamed('/onboarding'),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            fontSize: 13,
+            color: SmartSoleColors.textSecondaryDark,
+          ),
           children: [
-            Icon(Icons.error_outline, size: 16, color: SmartSoleColors.biAlert),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _errorMsg ?? '',
-                style: TextStyle(fontSize: 13, color: SmartSoleColors.biAlert),
+            const TextSpan(text: "Pas encore de compte ? "),
+            TextSpan(
+              text: "S'inscrire",
+              style: const TextStyle(
+                color: SmartSoleColors.biTeal,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -494,105 +735,27 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  // ── Auth Button ───────────────────────────────────────────────────────
-
-  Widget _buildAuthButton(TextTheme tt, bool isDark) {
-    // Kids: PIN confirm is inside the pad itself
-    if (_type == ProfileType.kids) return const SizedBox.shrink();
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: SmartSoleColors.heroGradient,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: SmartSoleColors.biTeal.withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(28),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(28),
-          onTap: _loading ? null : _authenticate,
-          child: Center(
-            child:
-                _loading
-                    ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                    : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.login_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Se connecter',
-                          style: tt.labelLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Footer ────────────────────────────────────────────────────────────
+  // ── Footer ────────────────────────────────────────────────────────────────
 
   Widget _buildFooter(TextTheme tt, bool isDark) {
+    final subtleColor = isDark
+        ? SmartSoleColors.textTertiaryDark
+        : SmartSoleColors.textTertiaryLight;
     return Column(
       children: [
         Text(
           'Données protégées — conformité RGPD',
-          style: TextStyle(
-            fontSize: 11,
-            color:
-                isDark
-                    ? SmartSoleColors.textTertiaryDark
-                    : SmartSoleColors.textTertiaryLight,
-          ),
+          style: TextStyle(fontSize: 11, color: subtleColor),
         ),
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.shield_outlined,
-              size: 12,
-              color:
-                  isDark
-                      ? SmartSoleColors.textTertiaryDark
-                      : SmartSoleColors.textTertiaryLight,
-            ),
+            Icon(Icons.shield_outlined, size: 12, color: subtleColor),
             const SizedBox(width: 4),
             Text(
               'SmartSole © 2026 · MVP v1.0',
-              style: TextStyle(
-                fontSize: 11,
-                color:
-                    isDark
-                        ? SmartSoleColors.textTertiaryDark
-                        : SmartSoleColors.textTertiaryLight,
-              ),
+              style: TextStyle(fontSize: 11, color: subtleColor),
             ),
           ],
         ),
@@ -605,7 +768,6 @@ class _AuthScreenState extends State<AuthScreen>
 
 class _BackgroundMesh extends StatelessWidget {
   const _BackgroundMesh({required this.isDark});
-
   final bool isDark;
 
   @override
@@ -615,15 +777,13 @@ class _BackgroundMesh extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors:
-              isDark
-                  ? [const Color(0xFF0A0E1A), const Color(0xFF0D1B2A)]
-                  : [const Color(0xFFF0FDF8), const Color(0xFFE0F2FE)],
+          colors: isDark
+              ? [const Color(0xFF0A0E1A), const Color(0xFF0D1B2A)]
+              : [const Color(0xFFF0FDF8), const Color(0xFFE0F2FE)],
         ),
       ),
       child: Stack(
         children: [
-          // Teal glow top-left
           Positioned(
             top: -60,
             left: -60,
@@ -636,7 +796,6 @@ class _BackgroundMesh extends StatelessWidget {
               ),
             ),
           ),
-          // Emerald glow bottom-right
           Positioned(
             bottom: -80,
             right: -80,
@@ -655,10 +814,10 @@ class _BackgroundMesh extends StatelessWidget {
   }
 }
 
-// ─── Input Field ─────────────────────────────────────────────────────────────
+// ─── Input Field avec validation ─────────────────────────────────────────────
 
-class _InputField extends StatelessWidget {
-  const _InputField({
+class _AuthField extends StatelessWidget {
+  const _AuthField({
     required this.controller,
     required this.label,
     required this.hint,
@@ -667,6 +826,7 @@ class _InputField extends StatelessWidget {
     this.keyboardType,
     this.obscure = false,
     this.suffixIcon,
+    this.validator,
   });
 
   final TextEditingController controller;
@@ -677,22 +837,23 @@ class _InputField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscure;
   final Widget? suffixIcon;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
-    final borderColor =
-        isDark
-            ? Colors.white.withValues(alpha: 0.12)
-            : Colors.black.withValues(alpha: 0.10);
-    final fillColor =
-        isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.80);
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.10);
+    final fillColor = isDark
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.80);
 
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscure,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       style: TextStyle(
         color: isDark ? Colors.white : const Color(0xFF111827),
         fontSize: 14,
@@ -720,12 +881,22 @@ class _InputField extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: SmartSoleColors.biTeal, width: 1.5),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: SmartSoleColors.biAlert.withValues(alpha: 0.7),
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: SmartSoleColors.biAlert),
+        ),
       ),
     );
   }
 }
 
-// ─── PIN Key (numpad) ────────────────────────────────────────────────────────
+// ─── PIN Key ──────────────────────────────────────────────────────────────────
 
 class _PinKey extends StatelessWidget {
   const _PinKey({
@@ -744,19 +915,17 @@ class _PinKey extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg =
-        isConfirm
-            ? SmartSoleColors.biTeal.withValues(alpha: 0.85)
-            : isDelete
+    final Color bg = isConfirm
+        ? SmartSoleColors.biTeal.withValues(alpha: 0.85)
+        : isDelete
             ? SmartSoleColors.biAlert.withValues(alpha: 0.15)
             : (isDark
                 ? Colors.white.withValues(alpha: 0.07)
                 : Colors.black.withValues(alpha: 0.05));
 
-    final Color textColor =
-        isConfirm
-            ? Colors.white
-            : isDelete
+    final Color textColor = isConfirm
+        ? Colors.white
+        : isDelete
             ? SmartSoleColors.biAlert
             : (isDark ? Colors.white : const Color(0xFF111827));
 

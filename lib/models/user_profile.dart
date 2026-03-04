@@ -7,6 +7,9 @@
 
 import 'package:flutter/foundation.dart';
 
+/// Genre utilisateur
+enum UserGender { male, female }
+
 /// Profil utilisateur SmartSole.
 enum ProfileType { urban, kids, pro }
 
@@ -16,6 +19,7 @@ class UserProfile {
     this.id,
     required this.email,
     required this.profileType,
+    this.gender,
     this.displayName,
     this.shoeSize,
     this.weightKg,
@@ -33,6 +37,7 @@ class UserProfile {
   final int? id;
   final String email;
   final ProfileType profileType;
+  final UserGender? gender;
   final String? displayName;
   final double? shoeSize;
   final double? weightKg;
@@ -63,10 +68,64 @@ class UserProfile {
   bool get isKids => profileType == ProfileType.kids;
   bool get isPro => profileType == ProfileType.pro;
 
+  // ── Firestore sérialisation ─────────────────────────────────────────────
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'email': email,
+      'profileType': profileType.name, // 'urban' | 'kids' | 'pro'
+      if (gender != null) 'gender': gender!.name,
+      if (displayName != null) 'displayName': displayName,
+      if (shoeSize != null) 'shoeSize': shoeSize,
+      if (weightKg != null) 'weightKg': weightKg,
+      if (heightCm != null) 'heightCm': heightCm,
+      if (childProfile != null) 'childProfile': childProfile!.toFirestore(),
+      'isOnboardingComplete': isOnboardingComplete,
+      'isDarkMode': isDarkMode,
+      'isOfflineMode': isOfflineMode,
+      'consentCloud': consentCloud,
+      'consentAnalytics': consentAnalytics,
+      'consentPush': consentPush,
+      if (initialPainScore != null) 'initialPainScore': initialPainScore,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  factory UserProfile.fromFirestore(Map<String, dynamic> data) {
+    return UserProfile(
+      email: data['email'] as String? ?? '',
+      profileType: ProfileType.values.firstWhere(
+        (e) => e.name == data['profileType'],
+        orElse: () => ProfileType.urban,
+      ),
+      gender: data['gender'] != null
+          ? UserGender.values.firstWhere(
+              (e) => e.name == data['gender'],
+              orElse: () => UserGender.male,
+            )
+          : null,
+      displayName: data['displayName'] as String?,
+      shoeSize: (data['shoeSize'] as num?)?.toDouble(),
+      weightKg: (data['weightKg'] as num?)?.toDouble(),
+      heightCm: (data['heightCm'] as num?)?.toDouble(),
+      childProfile: data['childProfile'] != null
+          ? ChildProfile.fromFirestore(data['childProfile'] as Map<String, dynamic>)
+          : null,
+      isOnboardingComplete: data['isOnboardingComplete'] as bool? ?? false,
+      isDarkMode: data['isDarkMode'] as bool? ?? true,
+      isOfflineMode: data['isOfflineMode'] as bool? ?? false,
+      consentCloud: data['consentCloud'] as bool? ?? false,
+      consentAnalytics: data['consentAnalytics'] as bool? ?? false,
+      consentPush: data['consentPush'] as bool? ?? false,
+      initialPainScore: data['initialPainScore'] as int?,
+    );
+  }
+
   UserProfile copyWith({
     int? id,
     String? email,
     ProfileType? profileType,
+    UserGender? gender,
     String? displayName,
     double? shoeSize,
     double? weightKg,
@@ -84,6 +143,7 @@ class UserProfile {
       id: id ?? this.id,
       email: email ?? this.email,
       profileType: profileType ?? this.profileType,
+      gender: gender ?? this.gender,
       displayName: displayName ?? this.displayName,
       shoeSize: shoeSize ?? this.shoeSize,
       weightKg: weightKg ?? this.weightKg,
@@ -138,5 +198,23 @@ class ChildProfile {
     if (months < 72) return '5-6 ans';
     if (months < 120) return '7-10 ans';
     return '> 10 ans';
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'nickname': nickname,
+      'birthMonth': birthMonth,
+      'birthYear': birthYear,
+      if (heightCm != null) 'heightCm': heightCm,
+    };
+  }
+
+  factory ChildProfile.fromFirestore(Map<String, dynamic> data) {
+    return ChildProfile(
+      nickname: data['nickname'] as String? ?? '',
+      birthMonth: data['birthMonth'] as int? ?? 1,
+      birthYear: data['birthYear'] as int? ?? 2020,
+      heightCm: (data['heightCm'] as num?)?.toDouble(),
+    );
   }
 }

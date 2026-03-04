@@ -84,7 +84,7 @@ class _NarrativeCardState extends State<NarrativeCard>
               ),
               const SizedBox(width: 10),
               Text(
-                'Coach SmartSole',
+                'Résumé & Conseils',
                 style: textTheme.titleMedium?.copyWith(
                   color: accent,
                   fontWeight: FontWeight.w700,
