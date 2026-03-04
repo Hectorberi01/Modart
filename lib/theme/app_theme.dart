@@ -50,10 +50,18 @@ abstract final class SmartSoleColors {
   static const Color glassLight = Color(0x0DFFFFFF);
   static const Color glassBorderLight = Color(0x1A000000);
 
-  // ── Gradients CdC ─────────────────────────────────────────────────────
-  /// Gradient héro principal (vert émeraude → cyan-teal)
+  // ── Gradients CdC (palette chaude — référence visuelle) ────────────────
+
+  /// Gradient héro principal (émeraude → teal)
   static const LinearGradient heroGradient = LinearGradient(
     colors: [biNormal, biTeal],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Gradient chaud CdC — ambre → orange profond (référence)
+  static const LinearGradient warmGradient = LinearGradient(
+    colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -65,16 +73,28 @@ abstract final class SmartSoleColors {
     end: Alignment.bottomRight,
   );
 
-  /// Gradient d'alerte (orange → rouge)
+  /// Gradient d'alerte (orange feu → rouge profond)
   static const LinearGradient alertGradient = LinearGradient(
-    colors: [biWarning, biAlert],
+    colors: [Color(0xFFF97316), Color(0xFFDC2626)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+  );
+
+  /// Gradient mesh sombre (fond animé)
+  static const LinearGradient meshDarkGradient = LinearGradient(
+    colors: [Color(0xFF0A0E1A), Color(0xFF111827), Color(0xFF0D1B2A)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
   );
 
   /// Shimmer pour les états de chargement
   static const Color shimmerBase = Color(0xFF1A2235);
   static const Color shimmerHighlight = Color(0xFF253350);
+
+  // ── Tooltip BI (long-press explanation) ─────────────────────────────────
+  static const Color tooltipBg = Color(0xF0111827);
+  static const Color tooltipBorder = Color(0x40FFFFFF);
+  static const double tooltipRadius = 14.0;
 
   // ── Utilitaire BI ────────────────────────────────────────────────────────
   static Color colorForState(BIState state) {
@@ -88,13 +108,39 @@ abstract final class SmartSoleColors {
     };
   }
 
+  /// Palette unifiée de pression plantaire (heatmap & bar charts)
+  /// [v] est normalisé entre 0.0 et 1.0
+  static Color getPressureColor(double v) {
+    if (v <= 0.10) return biNormal; // Vert émeraude
+    if (v <= 0.20) {
+      return Color.lerp(biNormal, biWarning, (v - 0.10) / 0.10)!; // vers Ambre
+    }
+    if (v <= 0.32) {
+      return Color.lerp(
+        biWarning,
+        const Color(0xFFF97316),
+        (v - 0.20) / 0.12,
+      )!; // Orange
+    }
+    if (v <= 0.50) {
+      return Color.lerp(
+        const Color(0xFFF97316),
+        biAlert,
+        (v - 0.32) / 0.18,
+      )!; // Rouge clair
+    }
+    return Color.lerp(
+      biAlert,
+      const Color(0xFFDC2626), // Rouge profond
+      ((v - 0.50) / 0.50).clamp(0, 1),
+    )!;
+  }
+
   /// Gradient BI dynamique selon l'état.
   static LinearGradient gradientForState(BIState state) {
     return switch (state) {
       BIState.normal => heroGradient,
-      BIState.warning => const LinearGradient(
-        colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
-      ),
+      BIState.warning => warmGradient,
       BIState.alert => alertGradient,
       BIState.teal => const LinearGradient(colors: [biTeal, Color(0xFF0EA5E9)]),
       BIState.navy => accentGradient,

@@ -397,3 +397,218 @@ class _InfoSection extends StatelessWidget {
     );
   }
 }
+
+// ── MetricTooltipWrapper — Long-press tooltip bulle ─────────────────────────
+//
+// Enveloppe un widget enfant. Au long-press, une bulle apparaît avec
+// le titre et la description courte de la métrique.
+// Au tap normal : ouvre le BottomSheet complet.
+
+class MetricTooltipWrapper extends StatefulWidget {
+  const MetricTooltipWrapper({
+    super.key,
+    required this.metric,
+    required this.child,
+  });
+
+  final MetricInfo metric;
+  final Widget child;
+
+  @override
+  State<MetricTooltipWrapper> createState() => _MetricTooltipWrapperState();
+}
+
+class _MetricTooltipWrapperState extends State<MetricTooltipWrapper>
+    with SingleTickerProviderStateMixin {
+  final GlobalKey _childKey = GlobalKey();
+  OverlayEntry? _overlayEntry;
+  late AnimationController _animCtrl;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _scaleAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutBack);
+    _opacityAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+  }
+
+  @override
+  void dispose() {
+    _hideTooltip();
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showTooltip() {
+    _hideTooltip();
+    final RenderBox? box =
+        _childKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final Offset offset = box.localToGlobal(Offset.zero);
+    final Size childSize = box.size;
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        // Position above the widget
+        const double tooltipMaxW = 280;
+        double left = offset.dx + childSize.width / 2 - tooltipMaxW / 2;
+        if (left < 12) left = 12;
+        if (left + tooltipMaxW > screenWidth - 12) {
+          left = screenWidth - tooltipMaxW - 12;
+        }
+        final double top = offset.dy - 10;
+
+        return Positioned(
+          left: left,
+          top: 0,
+          child: FadeTransition(
+            opacity: _opacityAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              alignment: Alignment.bottomCenter,
+              child: _TooltipBubble(
+                metric: widget.metric,
+                maxWidth: tooltipMaxW,
+                bottomY: top,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+    _animCtrl.forward();
+  }
+
+  void _hideTooltip() {
+    if (_overlayEntry != null) {
+      _animCtrl.reverse().then((_) {
+        _overlayEntry?.remove();
+        _overlayEntry = null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: _childKey,
+      onTap: () => showMetricInfo(context, widget.metric),
+      onLongPress: _showTooltip,
+      onLongPressEnd: (_) => _hideTooltip(),
+      child: widget.child,
+    );
+  }
+}
+
+// ── Tooltip Bubble ──────────────────────────────────────────────────────────
+
+class _TooltipBubble extends StatelessWidget {
+  const _TooltipBubble({
+    required this.metric,
+    required this.maxWidth,
+    required this.bottomY,
+  });
+
+  final MetricInfo metric;
+  final double maxWidth;
+  final double bottomY;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color accent = metric.color ?? SmartSoleColors.biTeal;
+
+    return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      margin: EdgeInsets.only(top: (bottomY - 120).clamp(20, bottomY - 20)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? SmartSoleColors.tooltipBg : const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(SmartSoleColors.tooltipRadius),
+        border: Border.all(
+          color:
+              isDark
+                  ? SmartSoleColors.tooltipBorder
+                  : Colors.black.withValues(alpha: 0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(metric.icon ?? Icons.info_outline, size: 16, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                metric.title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: accent,
+                ),
+              ),
+              if (metric.unit.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '(${metric.unit})',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color:
+                        isDark
+                            ? SmartSoleColors.textTertiaryDark
+                            : SmartSoleColors.textTertiaryLight,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            metric.description,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.5,
+              color:
+                  isDark
+                      ? SmartSoleColors.textSecondaryDark
+                      : SmartSoleColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Appuyez pour en savoir plus →',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: accent.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

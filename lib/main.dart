@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'theme/app_theme.dart';
+import 'models/user_profile.dart';
+import 'screens/auth_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/live_dashboard_screen.dart';
 import 'screens/session_summary_screen.dart';
@@ -79,6 +81,13 @@ class SmartSoleApp extends StatelessWidget {
     switch (settings.name) {
       case '/onboarding':
         return _fadeRoute(const OnboardingScreen(), settings.name!);
+      case '/auth':
+        // UserProfile passed as argument from onboarding
+        final profile = settings.arguments as UserProfile?;
+        if (profile != null) {
+          return _fadeRoute(AuthScreen(profile: profile), settings.name!);
+        }
+        return _fadeRoute(const OnboardingScreen(), '/onboarding');
       case '/pairing':
         return _fadeRoute(const _PairingPlaceholder(), settings.name!);
       case '/home':
@@ -159,12 +168,56 @@ class _HomeShellState extends State<HomeShell>
   int _currentIndex = 0;
   int _previousIndex = 0;
 
-  static const List<Widget> _pages = [
-    LiveDashboardScreen(),
-    HistoryTrendsScreen(),
-    IMMReportScreen(),
-    ProfileScreen(),
-  ];
+  // Profile type — injected from onboarding selection
+  // Default: urban for Thomas. Kids and Pro users get IMM tab.
+  ProfileType _profileType = ProfileType.urban;
+
+  /// Build the page list dynamically based on profile.
+  List<Widget> get _pages {
+    if (_profileType == ProfileType.kids) {
+      return const [IMMReportScreen(), ProfileScreen()];
+    }
+
+    final base = <Widget>[
+      const LiveDashboardScreen(),
+      const HistoryTrendsScreen(),
+    ];
+    if (_profileType == ProfileType.pro) {
+      base.add(const IMMReportScreen());
+    }
+    base.add(const ProfileScreen());
+    return base;
+  }
+
+  /// Build nav items dynamically.
+  List<_NavItemData> get _navItems {
+    if (_profileType == ProfileType.kids) {
+      return [
+        _NavItemData(icon: Icons.child_care, label: 'Suivi Enfant'),
+        _NavItemData(icon: Icons.person_outline, label: 'Profil'),
+      ];
+    }
+
+    final base = <_NavItemData>[
+      _NavItemData(icon: Icons.grid_view_rounded, label: 'Live'),
+      _NavItemData(icon: Icons.timeline, label: 'Tendances'),
+    ];
+    if (_profileType == ProfileType.pro) {
+      base.add(_NavItemData(icon: Icons.visibility, label: 'IMM'));
+    }
+    base.add(_NavItemData(icon: Icons.person_outline, label: 'Profil'));
+    return base;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check if the route contains profile type argument
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is ProfileType) {
+      _profileType = args;
+    }
+  }
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
@@ -177,6 +230,11 @@ class _HomeShellState extends State<HomeShell>
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final pages = _pages;
+    final navItems = _navItems;
+
+    // Clamp index in case profile changes
+    final safeIndex = _currentIndex.clamp(0, pages.length - 1);
 
     return Scaffold(
       body: AnimatedSwitcher(
@@ -184,7 +242,6 @@ class _HomeShellState extends State<HomeShell>
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
         transitionBuilder: (child, animation) {
-          // Slide direction depends on tab order
           final bool goingRight = _currentIndex > _previousIndex;
           return FadeTransition(
             opacity: animation,
@@ -198,12 +255,13 @@ class _HomeShellState extends State<HomeShell>
           );
         },
         child: KeyedSubtree(
-          key: ValueKey<int>(_currentIndex),
-          child: _pages[_currentIndex],
+          key: ValueKey<int>(safeIndex),
+          child: pages[safeIndex],
         ),
       ),
       bottomNavigationBar: _GlassBottomNav(
-        currentIndex: _currentIndex,
+        items: navItems,
+        currentIndex: safeIndex,
         isDark: isDark,
         onTap: _onTabTapped,
       ),
@@ -211,15 +269,24 @@ class _HomeShellState extends State<HomeShell>
   }
 }
 
+/// Data model for nav items.
+class _NavItemData {
+  const _NavItemData({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+}
+
 // ─── Glassmorphism Bottom Nav ────────────────────────────────────────────────
 
 class _GlassBottomNav extends StatelessWidget {
   const _GlassBottomNav({
+    required this.items,
     required this.currentIndex,
     required this.isDark,
     required this.onTap,
   });
 
+  final List<_NavItemData> items;
   final int currentIndex;
   final bool isDark;
   final void Function(int) onTap;
@@ -254,32 +321,14 @@ class _GlassBottomNav extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.grid_view_rounded,
-                label: 'Live',
-                isActive: currentIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                icon: Icons.timeline,
-                label: 'Tendances',
-                isActive: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.child_care,
-                label: 'IMM',
-                isActive: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.person_outline,
-                label: 'Profil',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
+            children: List.generate(items.length, (i) {
+              return _NavItem(
+                icon: items[i].icon,
+                label: items[i].label,
+                isActive: currentIndex == i,
+                onTap: () => onTap(i),
+              );
+            }),
           ),
         ),
       ),

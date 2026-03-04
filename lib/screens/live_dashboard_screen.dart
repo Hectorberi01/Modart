@@ -261,73 +261,82 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: GlassBentoCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.swap_horiz,
-                                        size: 16,
-                                        color:
-                                            isDark
-                                                ? Colors.white54
-                                                : Colors.black45,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text('MLPI', style: textTheme.titleSmall),
-                                      const Spacer(),
-                                      const MetricInfoButton(
-                                        metric: MetricCatalog.mlpi,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  MLPISlider(
-                                    value: _isSessionActive ? _mlpi : 0,
-                                  ),
-                                ],
+                            child: MetricTooltipWrapper(
+                              metric: MetricCatalog.mlpi,
+                              child: GlassBentoCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.swap_horiz,
+                                          size: 16,
+                                          color:
+                                              isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'MLPI',
+                                          style: textTheme.titleSmall,
+                                        ),
+                                        const Spacer(),
+                                        const MetricInfoButton(
+                                          metric: MetricCatalog.mlpi,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    MLPISlider(
+                                      value: _isSessionActive ? _mlpi : 0,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: GlassBentoCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.directions_run,
-                                        size: 16,
-                                        color:
-                                            isDark
-                                                ? Colors.white54
-                                                : Colors.black45,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Segment',
-                                        style: textTheme.titleSmall,
-                                      ),
-                                      const Spacer(),
-                                      const MetricInfoButton(
-                                        metric: MetricCatalog.segment,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Center(
-                                    child: SegmentBadge(
-                                      segment:
-                                          _isSessionActive
-                                              ? _segment
-                                              : WalkSegment.stopped,
+                            child: MetricTooltipWrapper(
+                              metric: MetricCatalog.segment,
+                              child: GlassBentoCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.directions_run,
+                                          size: 16,
+                                          color:
+                                              isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Segment',
+                                          style: textTheme.titleSmall,
+                                        ),
+                                        const Spacer(),
+                                        const MetricInfoButton(
+                                          metric: MetricCatalog.segment,
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 12),
+                                    Center(
+                                      child: SegmentBadge(
+                                        segment:
+                                            _isSessionActive
+                                                ? _segment
+                                                : WalkSegment.stopped,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -499,7 +508,7 @@ class _KpiCard extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color accent = SmartSoleColors.colorForState(biState);
 
-    return GlassBentoCard(
+    final Widget card = GlassBentoCard(
       accentColor: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,6 +546,12 @@ class _KpiCard extends StatelessWidget {
         ],
       ),
     );
+
+    // Wrap with tooltip for long-press explanation
+    if (metric != null) {
+      return MetricTooltipWrapper(metric: metric!, child: card);
+    }
+    return card;
   }
 }
 

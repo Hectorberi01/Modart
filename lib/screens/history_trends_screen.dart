@@ -204,9 +204,9 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Historique douleur ─────────────────────────────────────
+              // ── Répartition des zones de charge ───────────────────────
               GlassBentoCard(
-                padding: const EdgeInsets.fromLTRB(12, 20, 16, 12),
+                padding: const EdgeInsets.fromLTRB(12, 20, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -215,19 +215,37 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.favorite_outline,
+                            Icons.bar_chart_rounded,
                             size: 18,
-                            color: SmartSoleColors.biAlert.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: SmartSoleColors.biTeal,
                           ),
                           const SizedBox(width: 8),
-                          Text('Douleur', style: textTheme.titleLarge),
+                          Text(
+                            'Répartition des charges',
+                            style: textTheme.titleLarge,
+                          ),
+                          const Spacer(),
+                          const MetricInfoButton(metric: MetricCatalog.hotspot),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '30 dernières sessions — distribution plantaire',
+                      style: textTheme.bodySmall?.copyWith(
+                        color:
+                            isDark
+                                ? SmartSoleColors.textTertiaryDark
+                                : SmartSoleColors.textTertiaryLight,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    SizedBox(height: 120, child: _buildPainChart(isDark)),
+                    SizedBox(
+                      height: 120,
+                      child: _buildZoneDistributionChart(isDark),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildZoneLegend(isDark),
                   ],
                 ),
               ),
@@ -362,50 +380,136 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
     );
   }
 
-  Widget _buildPainChart(bool isDark) {
-    final List<int> pain = _mock.generatePainHistory();
+  // ── Zone distribution — stacked proportional bars ───────────────
+
+  Widget _buildZoneDistributionChart(bool isDark) {
+    // Genere des données de répartition zone (forefoot/midfoot/heel)
+    // à partir de sessions mocknées.
+    final List<(double ff, double mf, double hl)> data = List.generate(30, (i) {
+      // Thème Thomas : avant-pied souvent surchargé
+      final double base = 0.10 + (i / 30) * 0.08;
+      final double ff = (0.45 + base + (i.isEven ? 0.08 : -0.04)).clamp(
+        0.0,
+        0.99,
+      );
+      final double mf = (0.20 - base * 0.5 + (i.isOdd ? 0.04 : -0.02)).clamp(
+        0.0,
+        0.40,
+      );
+      final double hl = (1.0 - ff - mf).clamp(0.01, 0.60);
+      return (ff, mf, hl);
+    });
+
+    // One segment = one bar of the stacked chart
+    final List<BarChartGroupData> groups = List.generate(data.length, (i) {
+      final (double ff, double mf, double hl) = data[i];
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: 1.0,
+            width: 6,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+            rodStackItems: [
+              // Heel (bottom)
+              BarChartRodStackItem(
+                0,
+                hl,
+                const Color(0xFF6366F1).withValues(alpha: 0.70),
+              ),
+              // Midfoot
+              BarChartRodStackItem(
+                hl,
+                hl + mf,
+                const Color(0xFF10B981).withValues(alpha: 0.75),
+              ),
+              // Forefoot (top)
+              BarChartRodStackItem(
+                hl + mf,
+                1.0,
+                _forefootColor(ff).withValues(alpha: 0.82),
+              ),
+            ],
+          ),
+        ],
+      );
+    });
+
     return BarChart(
       BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: 1.0,
+        barGroups: groups,
         gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
           leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          bottomTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 10,
+              getTitlesWidget: (v, _) {
+                final int session = v.toInt() + 1;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'S$session',
+                    style: TextStyle(
+                      fontSize: 8,
+                      color:
+                          isDark
+                              ? SmartSoleColors.textTertiaryDark
+                              : SmartSoleColors.textTertiaryLight,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
-        borderData: FlBorderData(show: false),
-        maxY: 10,
-        barGroups: List.generate(pain.length, (i) {
-          final double v = pain[i].toDouble();
-          final Color barColor =
-              v <= 3
-                  ? SmartSoleColors.biNormal
-                  : v <= 6
-                  ? SmartSoleColors.biWarning
-                  : SmartSoleColors.biAlert;
-          return BarChartGroupData(
-            x: i,
-            barRods: [
-              BarChartRodData(
-                toY: v,
-                color: barColor.withValues(alpha: 0.7),
-                width: 5,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(3),
-                ),
-              ),
-            ],
-          );
-        }),
       ),
+    );
+  }
+
+  /// Couleur de l'avant-pied selon son niveau de charge (standardisé avec la map)
+  Color _forefootColor(double v) {
+    return SmartSoleColors.getPressureColor(v);
+  }
+
+  Widget _buildZoneLegend(bool isDark) {
+    final Color textColor =
+        isDark
+            ? SmartSoleColors.textSecondaryDark
+            : SmartSoleColors.textSecondaryLight;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _LegendDot(
+          color: const Color(0xFFEF4444),
+          label: 'Avant-pied',
+          textColor: textColor,
+        ),
+        const SizedBox(width: 16),
+        _LegendDot(
+          color: const Color(0xFF10B981),
+          label: 'Médio',
+          textColor: textColor,
+        ),
+        const SizedBox(width: 16),
+        _LegendDot(
+          color: const Color(0xFF6366F1),
+          label: 'Talon',
+          textColor: textColor,
+        ),
+      ],
     );
   }
 
@@ -469,6 +573,42 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
   }
 }
 
+// ─── Legend Dot ──────────────────────────────────────────────────────────────
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({
+    required this.color,
+    required this.label,
+    required this.textColor,
+  });
+
+  final Color color;
+  final String label;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: textColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
 // ─── Trend KPI Card ────────────────────────────────────────────────────────
 
 class _TrendKpi extends StatelessWidget {
