@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:modar/models/ShoeSample.dart';
+import 'package:modar/services/ShoeDataService.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 enum ScanStartResult {
@@ -16,6 +20,14 @@ class AppBluetoothService {
   static final AppBluetoothService _instance = AppBluetoothService._internal();
   factory AppBluetoothService() => _instance;
   AppBluetoothService._internal();
+
+  // Services
+  final ShoeDataService _shoeDataService = ShoeDataService();
+  final Random _random = Random();
+  Timer? _simulationTimer;
+  int _steps = 0;
+
+  Stream<ShoeSample> get shoeStream => _shoeDataService.stream;
 
   // Observable state
   Stream<List<ScanResult>> get scanResults => FlutterBluePlus.scanResults;
@@ -45,7 +57,7 @@ class AppBluetoothService {
       }
     }
 
-    // ⚠️ iOS : ne demande PAS Permission.bluetooth ici
+    //iOS : ne demande PAS Permission.bluetooth ici
 
     if (await FlutterBluePlus.isSupported == false) {
       return ScanStartResult.bluetoothNotSupported;
@@ -101,11 +113,23 @@ class AppBluetoothService {
             await characteristic.setNotifyValue(true);
 
             characteristic.onValueReceived.listen((value) {
-              print("📡 Live data received: $value");
+              //print("📡 Live data received: $value");
 
               // Si données binaires → convertir en string
-              final decoded = String.fromCharCodes(value);
+              /*final decoded = String.fromCharCodes(value);
               print("Decoded: $decoded");
+              final json = jsonDecode(decoded);
+
+              final sample = ShoeSample(
+                steps: json["pas"],
+                angleX: json["angle_x"],
+                angleY: json["angle_y"],
+                badPosition: json["mauvais_positionnement"],
+                timestamp: DateTime.now(),
+              );
+
+              _shoeDataService.addSample(sample);*/
+              startRandomSimulation();
             });
           }
         }
@@ -117,5 +141,23 @@ class AppBluetoothService {
 
   Future<void> disconnect(BluetoothDevice device) async {
     await device.disconnect();
+  }
+
+  void startRandomSimulation() {
+    print("--- Starting Random Sensor Simulation ---");
+
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      _steps += _random.nextInt(2);
+
+      final sample = ShoeSample(
+        steps: _steps,
+        angleX: 150 + _random.nextDouble() * 20,
+        angleY: 140 + _random.nextDouble() * 20,
+        badPosition: _random.nextBool(),
+        timestamp: DateTime.now(),
+      );
+
+      _shoeDataService.addSample(sample);
+    });
   }
 }
