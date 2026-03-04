@@ -50,6 +50,32 @@ abstract final class SmartSoleColors {
   static const Color glassLight = Color(0x0DFFFFFF);
   static const Color glassBorderLight = Color(0x1A000000);
 
+  // ── Gradients CdC ─────────────────────────────────────────────────────
+  /// Gradient héro principal (vert émeraude → cyan-teal)
+  static const LinearGradient heroGradient = LinearGradient(
+    colors: [biNormal, biTeal],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Gradient accent (indigo → bleu)
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [biNavy, accentSoft],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Gradient d'alerte (orange → rouge)
+  static const LinearGradient alertGradient = LinearGradient(
+    colors: [biWarning, biAlert],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Shimmer pour les états de chargement
+  static const Color shimmerBase = Color(0xFF1A2235);
+  static const Color shimmerHighlight = Color(0xFF253350);
+
   // ── Utilitaire BI ────────────────────────────────────────────────────────
   static Color colorForState(BIState state) {
     return switch (state) {
@@ -59,6 +85,22 @@ abstract final class SmartSoleColors {
       BIState.teal => biTeal,
       BIState.navy => biNavy,
       BIState.neutral => textSecondaryDark,
+    };
+  }
+
+  /// Gradient BI dynamique selon l'état.
+  static LinearGradient gradientForState(BIState state) {
+    return switch (state) {
+      BIState.normal => heroGradient,
+      BIState.warning => const LinearGradient(
+        colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+      ),
+      BIState.alert => alertGradient,
+      BIState.teal => const LinearGradient(colors: [biTeal, Color(0xFF0EA5E9)]),
+      BIState.navy => accentGradient,
+      BIState.neutral => const LinearGradient(
+        colors: [textSecondaryDark, textTertiaryDark],
+      ),
     };
   }
 }

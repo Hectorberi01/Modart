@@ -1,14 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-
 import '../models/pressure_data.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PressureMapPainter v2 — Forme anatomique réaliste
+// PressureMapPainter v3 — Forme anatomique avec orteils ovales séparés
 //
-// Contours de pieds dessinés avec des courbes cubiques de Bézier fidèles
-// à l'anatomie (voûte plantaire, orteils arrondis, talon ovale).
-// 4 zones/pied, RadialGradient dynamique BI, animation pulsation hotspot.
+// Inspiré de la silhouette référence : orteils ovales distincts, voûte
+// plantaire prononcée, talon arrondi. Gradients BI dynamiques, pulsation
+// hotspot, badges de pression.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Seuil à partir duquel une zone est "hotspot".
@@ -95,7 +94,7 @@ class _PressureMapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double footH = size.height * 0.92;
-    final double footW = footH * 0.38; // Ratio anatomique ~38%
+    final double footW = footH * 0.38;
     final double gap = size.width * 0.04;
 
     final Offset leftOrigin = Offset(
@@ -133,11 +132,27 @@ class _PressureMapPainter extends CustomPainter {
     PressureData pressure, {
     required bool isLeft,
   }) {
-    final Path footPath = _anatomicalFootPath(origin, w, h, isLeft);
+    // 1. Main body path (sole sans orteils)
+    final Path bodyPath = _soleBodyPath(origin, w, h, isLeft);
+    // 2. Toe ovals
+    final List<_ToeOval> toes = _toeOvals(origin, w, h, isLeft);
+
+    // Combined path = body + toes
+    final Path fullPath = Path();
+    fullPath.addPath(bodyPath, Offset.zero);
+    for (final toe in toes) {
+      fullPath.addOval(
+        Rect.fromCenter(
+          center: toe.center,
+          width: toe.rx * 2,
+          height: toe.ry * 2,
+        ),
+      );
+    }
 
     // Clip pour que les gradients ne dépassent pas du pied
     canvas.save();
-    canvas.clipPath(footPath);
+    canvas.clipPath(fullPath);
 
     // Fond subtil du pied
     final Paint bgPaint =
@@ -146,7 +161,10 @@ class _PressureMapPainter extends CustomPainter {
               isDark
                   ? Colors.white.withValues(alpha: 0.03)
                   : Colors.black.withValues(alpha: 0.02);
-    canvas.drawPath(footPath, bgPaint);
+    canvas.drawRect(
+      Rect.fromLTWH(origin.dx - 10, origin.dy - 20, w + 20, h + 40),
+      bgPaint,
+    );
 
     // Dessiner les 4 zones de pression
     final List<_Zone> zones = _zonesForFoot(origin, w, h, pressure, isLeft);
@@ -156,18 +174,39 @@ class _PressureMapPainter extends CustomPainter {
 
     canvas.restore();
 
-    // Contour du pied par-dessus
+    // Contour du body
     final Paint outlinePaint =
         Paint()
           ..color =
               isDark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.black.withValues(alpha: 0.08)
+                  ? Colors.white.withValues(alpha: 0.18)
+                  : Colors.black.withValues(alpha: 0.12)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2
+          ..strokeWidth = 1.5
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(footPath, outlinePaint);
+    canvas.drawPath(bodyPath, outlinePaint);
+
+    // Contour et fill subtil des orteils
+    for (final toe in toes) {
+      final Rect ovalRect = Rect.fromCenter(
+        center: toe.center,
+        width: toe.rx * 2,
+        height: toe.ry * 2,
+      );
+
+      // Fill léger
+      final Paint toeFill =
+          Paint()
+            ..color =
+                isDark
+                    ? Colors.white.withValues(alpha: 0.02)
+                    : Colors.black.withValues(alpha: 0.01);
+      canvas.drawOval(ovalRect, toeFill);
+
+      // Contour
+      canvas.drawOval(ovalRect, outlinePaint);
+    }
 
     // Labels hotspot
     if (showHotspotLabels) {
@@ -179,137 +218,132 @@ class _PressureMapPainter extends CustomPainter {
     }
   }
 
-  // ── Dessin anatomique réaliste du pied ──────────────────────────────────
+  // ── Corps du pied (sole) — sans orteils ──────────────────────────────────
 
-  Path _anatomicalFootPath(Offset o, double w, double h, bool isLeft) {
-    // On dessine le pied droit puis on flip pour le gauche.
-    // Points clés anatomiques (proportions normalisées) :
-    //   - Gros orteil proéminent, orteils dégressifs
-    //   - Voûte plantaire concave côté interne
-    //   - Bord externe convexe
-    //   - Talon ovale
-
+  Path _soleBodyPath(Offset o, double w, double h, bool isLeft) {
     final Path path = Path();
 
-    // Coordonnées normalisées du pied droit (x: 0→w, y: 0→h)
-    // Le gros orteil est côté "interne" (gauche pour un pied droit)
+    // Points de référence verticaux
+    final double toeBaseY = h * 0.18; // Où les orteils se connectent
+    final double ballY = h * 0.24;
+    final double archTopY = h * 0.40;
+    final double archBottomY = h * 0.64;
+    final double heelTopY = h * 0.80;
+    final double heelBottomY = h * 0.98;
 
-    // Points de référence
-    final double toeY = h * 0.00;
-    final double ballY = h * 0.22;
-    final double archTopY = h * 0.38;
-    final double archBottomY = h * 0.62;
-    final double heelTopY = h * 0.78;
-    final double heelBottomY = h * 1.00;
+    // Points latéraux
+    final double innerX = isLeft ? w * 0.88 : w * 0.12;
+    final double outerX = isLeft ? w * 0.12 : w * 0.88;
 
-    // Côté interne = gauche pour pied droit
-    final double innerX = w * 0.10;
-    // Côté externe = droite pour pied droit
-    final double outerX = w * 0.90;
+    // ── Haut du pied (base des orteils — courbe convexe) ─────────────────
+    final double leftEdge = isLeft ? outerX : w * 0.12;
+    final double rightEdge = isLeft ? w * 0.88 : outerX;
 
-    // ── Orteils (haut du pied) ──────────────────────────────────────────
+    path.moveTo(o.dx + leftEdge, o.dy + toeBaseY);
 
-    // Orteils 2-5 (de l'intérieur vers l'extérieur, de plus en plus courts)
-    final List<Offset> toeTips = [
-      Offset(w * 0.22, toeY), // Gros orteil
-      Offset(w * 0.40, toeY + h * 0.01), // 2ème orteil
-      Offset(w * 0.55, toeY + h * 0.03), // 3ème
-      Offset(w * 0.67, toeY + h * 0.06), // 4ème
-      Offset(w * 0.77, toeY + h * 0.10), // Petit orteil
-    ];
-
-    // Flipper horizontal pour le pied gauche
-    List<Offset> tips = toeTips;
-    if (isLeft) {
-      tips = toeTips.map((p) => Offset(w - p.dx, p.dy)).toList();
-    }
-
-    final double archInnerX = isLeft ? outerX : innerX;
-    final double archOuterX = isLeft ? innerX : outerX;
-
-    // Commencer par le gros orteil
-    path.moveTo(o.dx + tips[0].dx, o.dy + tips[0].dy);
-
-    // Arc doux entre chaque orteil
-    for (int i = 0; i < tips.length - 1; i++) {
-      final Offset current = tips[i];
-      final Offset next = tips[i + 1];
-      final double midX = (current.dx + next.dx) / 2;
-      // Creux entre les orteils
-      final double valleyY = math.max(current.dy, next.dy) + h * 0.025;
-
-      path.quadraticBezierTo(
-        o.dx + midX,
-        o.dy + valleyY,
-        o.dx + next.dx,
-        o.dy + next.dy,
-      );
-    }
-
-    // ── Bord externe (du petit orteil au talon) ─────────────────────────
+    // Courbe du haut (métatarses) — légèrement convexe
     path.cubicTo(
-      o.dx + archOuterX + (isLeft ? -w * 0.05 : w * 0.05),
-      o.dy + ballY - h * 0.02,
-      o.dx + archOuterX + (isLeft ? -w * 0.02 : w * 0.02),
-      o.dy + ballY + h * 0.05,
-      o.dx + archOuterX,
+      o.dx + w * 0.35,
+      o.dy + toeBaseY - h * 0.015,
+      o.dx + w * 0.65,
+      o.dy + toeBaseY - h * 0.015,
+      o.dx + rightEdge,
+      o.dy + toeBaseY,
+    );
+
+    // ── Bord externe (du petit orteil au talon) ──────────────────────────
+    path.cubicTo(
+      o.dx + outerX + (isLeft ? -w * 0.04 : w * 0.04),
+      o.dy + ballY + h * 0.04,
+      o.dx + outerX + (isLeft ? -w * 0.01 : w * 0.01),
       o.dy + archTopY,
+      o.dx + outerX,
+      o.dy + archTopY + h * 0.02,
     );
 
-    // Bord externe : courbe douce vers le bas
     path.cubicTo(
-      o.dx + archOuterX + (isLeft ? w * 0.02 : -w * 0.02),
-      o.dy + archBottomY - h * 0.08,
-      o.dx + archOuterX + (isLeft ? w * 0.02 : -w * 0.02),
-      o.dy + archBottomY + h * 0.05,
-      o.dx + (isLeft ? w * 0.82 : w * 0.18) + (isLeft ? -w * 0.02 : w * 0.02),
+      o.dx + outerX + (isLeft ? w * 0.01 : -w * 0.01),
+      o.dy + archBottomY - h * 0.06,
+      o.dx + outerX + (isLeft ? w * 0.01 : -w * 0.01),
+      o.dy + archBottomY + h * 0.04,
+      o.dx + (isLeft ? w * 0.16 : w * 0.84),
       o.dy + heelTopY,
     );
 
-    // ── Talon (ovale arrondi) ───────────────────────────────────────────
-    final double heelCenterX = w * 0.50;
-    final double heelW = w * 0.36;
+    // ── Talon arrondi ────────────────────────────────────────────────────
+    final double heelCX = w * 0.50;
+    final double heelR = w * 0.34;
 
     path.cubicTo(
-      o.dx + (isLeft ? heelCenterX + heelW * 0.8 : heelCenterX - heelW * 0.8),
+      o.dx + (isLeft ? heelCX + heelR * 0.7 : heelCX - heelR * 0.7),
       o.dy + heelTopY + h * 0.04,
-      o.dx + (isLeft ? heelCenterX + heelW * 0.6 : heelCenterX - heelW * 0.6),
-      o.dy + heelBottomY - h * 0.01,
-      o.dx + heelCenterX,
-      o.dy + heelBottomY - h * 0.005,
+      o.dx + (isLeft ? heelCX + heelR * 0.5 : heelCX - heelR * 0.5),
+      o.dy + heelBottomY,
+      o.dx + heelCX,
+      o.dy + heelBottomY,
     );
 
     path.cubicTo(
-      o.dx + (isLeft ? heelCenterX - heelW * 0.6 : heelCenterX + heelW * 0.6),
-      o.dy + heelBottomY - h * 0.01,
-      o.dx + (isLeft ? heelCenterX - heelW * 0.8 : heelCenterX + heelW * 0.8),
+      o.dx + (isLeft ? heelCX - heelR * 0.5 : heelCX + heelR * 0.5),
+      o.dy + heelBottomY,
+      o.dx + (isLeft ? heelCX - heelR * 0.7 : heelCX + heelR * 0.7),
       o.dy + heelTopY + h * 0.04,
-      o.dx + (isLeft ? w * 0.18 : w * 0.82) + (isLeft ? w * 0.02 : -w * 0.02),
+      o.dx + (isLeft ? w * 0.84 : w * 0.16),
       o.dy + heelTopY,
     );
 
-    // ── Voûte plantaire (côté interne — courbe concave) ─────────────────
+    // ── Voûte plantaire (concave côté interne) ───────────────────────────
     path.cubicTo(
-      o.dx + archInnerX + (isLeft ? w * 0.15 : -w * 0.15),
+      o.dx + innerX + (isLeft ? -w * 0.12 : w * 0.12),
       o.dy + archBottomY + h * 0.02,
-      o.dx + archInnerX + (isLeft ? w * 0.20 : -w * 0.20),
-      o.dy + archTopY + h * 0.10,
-      o.dx + archInnerX + (isLeft ? w * 0.08 : -w * 0.08),
+      o.dx + innerX + (isLeft ? -w * 0.18 : w * 0.18),
+      o.dy + archTopY + h * 0.08,
+      o.dx + innerX + (isLeft ? -w * 0.06 : w * 0.06),
       o.dy + archTopY - h * 0.02,
     );
 
-    // ── Remontée vers les orteils côté interne ──────────────────────────
+    // ── Remontée vers la base des orteils côté interne ───────────────────
     path.cubicTo(
-      o.dx + archInnerX + (isLeft ? w * 0.02 : -w * 0.02),
-      o.dy + ballY + h * 0.05,
-      o.dx + archInnerX + (isLeft ? -w * 0.02 : w * 0.02),
-      o.dy + ballY - h * 0.04,
-      o.dx + tips[0].dx,
-      o.dy + tips[0].dy,
+      o.dx + innerX + (isLeft ? -w * 0.01 : w * 0.01),
+      o.dy + ballY + h * 0.04,
+      o.dx + innerX + (isLeft ? w * 0.02 : -w * 0.02),
+      o.dy + ballY - h * 0.02,
+      o.dx + leftEdge,
+      o.dy + toeBaseY,
     );
 
     path.close();
     return path;
+  }
+
+  // ── Orteils ovales séparés ─────────────────────────────────────────────
+
+  List<_ToeOval> _toeOvals(Offset o, double w, double h, bool isLeft) {
+    // Pied droit : gros orteil à gauche (interne), petit à droite
+    // Pied gauche : miroir
+
+    // Positions normalisées pour pied droit
+    final List<_ToeSpec> specs = [
+      // Gros orteil — plus gros, plus bas (plus haut en y = plus haut visuellement)
+      _ToeSpec(cx: 0.22, cy: 0.07, rx: 0.10, ry: 0.055),
+      // 2ème orteil — un peu plus haut que le gros
+      _ToeSpec(cx: 0.38, cy: 0.035, rx: 0.065, ry: 0.04),
+      // 3ème orteil
+      _ToeSpec(cx: 0.52, cy: 0.04, rx: 0.058, ry: 0.035),
+      // 4ème orteil
+      _ToeSpec(cx: 0.64, cy: 0.055, rx: 0.052, ry: 0.032),
+      // Petit orteil — le plus petit et le plus bas
+      _ToeSpec(cx: 0.75, cy: 0.08, rx: 0.048, ry: 0.028),
+    ];
+
+    return specs.map((s) {
+      final double cx = isLeft ? (1.0 - s.cx) : s.cx;
+      return _ToeOval(
+        center: Offset(o.dx + cx * w, o.dy + s.cy * h),
+        rx: s.rx * w,
+        ry: s.ry * h,
+      );
+    }).toList();
   }
 
   // ── Zones de pression par pied ──────────────────────────────────────────
@@ -324,9 +358,9 @@ class _PressureMapPainter extends CustomPainter {
     return [
       _Zone(
         name: 'Orteils',
-        center: Offset(o.dx + w * 0.45, o.dy + h * 0.10),
-        radiusX: w * 0.35,
-        radiusY: h * 0.08,
+        center: Offset(o.dx + w * 0.45, o.dy + h * 0.07),
+        radiusX: w * 0.38,
+        radiusY: h * 0.06,
         value: p.toe,
       ),
       _Zone(
@@ -338,15 +372,15 @@ class _PressureMapPainter extends CustomPainter {
       ),
       _Zone(
         name: 'Médio-pied',
-        center: Offset(o.dx + w * (isLeft ? 0.55 : 0.45), o.dy + h * 0.50),
+        center: Offset(o.dx + w * (isLeft ? 0.55 : 0.45), o.dy + h * 0.52),
         radiusX: w * 0.28,
         radiusY: h * 0.10,
         value: p.midfoot,
       ),
       _Zone(
         name: 'Talon',
-        center: Offset(o.dx + w * 0.50, o.dy + h * 0.84),
-        radiusX: w * 0.32,
+        center: Offset(o.dx + w * 0.50, o.dy + h * 0.86),
+        radiusX: w * 0.30,
         radiusY: h * 0.10,
         value: p.heel,
       ),
@@ -367,10 +401,10 @@ class _PressureMapPainter extends CustomPainter {
       ry *= pulse;
     }
 
-    // 3 couches de glow pour un rendu plus organique
+    // 3 couches de glow pour un rendu organique
     for (int layer = 0; layer < 3; layer++) {
       final double spread = 1.0 + layer * 0.4;
-      final double opacity = (0.5 - layer * 0.15).clamp(0.05, 0.6);
+      final double opacity = (0.55 - layer * 0.15).clamp(0.05, 0.65);
 
       final Rect rect = Rect.fromCenter(
         center: zone.center,
@@ -383,7 +417,7 @@ class _PressureMapPainter extends CustomPainter {
             ..shader = RadialGradient(
               colors: [
                 color.withValues(alpha: opacity),
-                color.withValues(alpha: opacity * 0.4),
+                color.withValues(alpha: opacity * 0.35),
                 color.withValues(alpha: 0),
               ],
               stops: const [0.0, 0.5, 1.0],
@@ -399,7 +433,6 @@ class _PressureMapPainter extends CustomPainter {
     final double alpha = 0.6 + 0.4 * math.sin(animValue * 2 * math.pi);
     final String label = '${(zone.value * 100).toInt()}%';
 
-    // Fond du badge
     final double badgeW = 36;
     final double badgeH = 18;
     final Rect badgeRect = Rect.fromCenter(
@@ -414,7 +447,7 @@ class _PressureMapPainter extends CustomPainter {
 
     final Paint badgeBgPaint =
         Paint()
-          ..color = _pressureColor(zone.value).withValues(alpha: alpha * 0.7);
+          ..color = _pressureColor(zone.value).withValues(alpha: alpha * 0.75);
     canvas.drawRRect(badgeRRect, badgeBgPaint);
 
     // Texte
@@ -446,8 +479,8 @@ class _PressureMapPainter extends CustomPainter {
         style: TextStyle(
           color:
               isDark
-                  ? Colors.white.withValues(alpha: 0.35)
-                  : Colors.black.withValues(alpha: 0.2),
+                  ? Colors.white.withValues(alpha: 0.40)
+                  : Colors.black.withValues(alpha: 0.22),
           fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
@@ -459,23 +492,36 @@ class _PressureMapPainter extends CustomPainter {
     tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy));
   }
 
-  // ── Couleur BI interpolée ───────────────────────────────────────────────
+  // ── Couleur BI interpolée — gradients CdC ──────────────────────────────
 
   Color _pressureColor(double v) {
-    if (v <= 0.15) return const Color(0xFF22C55E); // Vert vif
+    // CdC : vert → jaune → orange → rouge
+    if (v <= 0.15) return const Color(0xFF10B981); // Émeraude (normal)
     if (v <= 0.25) {
       final double t = (v - 0.15) / 0.10;
-      return Color.lerp(const Color(0xFF22C55E), const Color(0xFFFACC15), t)!;
+      return Color.lerp(
+        const Color(0xFF10B981),
+        const Color(0xFFFBBF24), // Ambre doré
+        t,
+      )!;
     }
     if (v <= 0.35) {
       final double t = (v - 0.25) / 0.10;
-      return Color.lerp(const Color(0xFFFACC15), const Color(0xFFF97316), t)!;
+      return Color.lerp(
+        const Color(0xFFFBBF24),
+        const Color(0xFFF97316), // Orange vibrant
+        t,
+      )!;
     }
     if (v <= 0.50) {
       final double t = (v - 0.35) / 0.15;
-      return Color.lerp(const Color(0xFFF97316), const Color(0xFFEF4444), t)!;
+      return Color.lerp(
+        const Color(0xFFF97316),
+        const Color(0xFFEF4444), // Rouge signal
+        t,
+      )!;
     }
-    return const Color(0xFFEF4444); // Rouge vif
+    return const Color(0xFFEF4444);
   }
 
   @override
@@ -487,7 +533,7 @@ class _PressureMapPainter extends CustomPainter {
   }
 }
 
-// ── Zone de pression ────────────────────────────────────────────────────────
+// ── Data Structures ─────────────────────────────────────────────────────────
 
 class _Zone {
   const _Zone({
@@ -503,4 +549,20 @@ class _Zone {
   final double radiusX;
   final double radiusY;
   final double value;
+}
+
+class _ToeSpec {
+  const _ToeSpec({
+    required this.cx,
+    required this.cy,
+    required this.rx,
+    required this.ry,
+  });
+  final double cx, cy, rx, ry;
+}
+
+class _ToeOval {
+  const _ToeOval({required this.center, required this.rx, required this.ry});
+  final Offset center;
+  final double rx, ry;
 }

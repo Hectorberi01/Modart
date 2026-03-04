@@ -6,6 +6,7 @@ import '../widgets/mesh_gradient_background.dart';
 import '../widgets/pressure_map_painter.dart';
 import '../widgets/mlpi_slider.dart';
 import '../widgets/segment_badge.dart';
+import '../widgets/metric_info_sheet.dart';
 import '../models/pressure_data.dart';
 import '../services/mock_data_service.dart';
 
@@ -237,6 +238,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                               unit: 'pas/min',
                               icon: Icons.speed,
                               biState: _cadenceBIState(),
+                              metric: MetricCatalog.cadence,
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -250,6 +252,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                               unit: 'km/h',
                               icon: Icons.directions_walk,
                               biState: BIState.normal,
+                              metric: MetricCatalog.speed,
                             ),
                           ),
                         ],
@@ -274,6 +277,10 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text('MLPI', style: textTheme.titleSmall),
+                                      const Spacer(),
+                                      const MetricInfoButton(
+                                        metric: MetricCatalog.mlpi,
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
@@ -304,6 +311,10 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                                       Text(
                                         'Segment',
                                         style: textTheme.titleSmall,
+                                      ),
+                                      const Spacer(),
+                                      const MetricInfoButton(
+                                        metric: MetricCatalog.segment,
                                       ),
                                     ],
                                   ),
@@ -473,6 +484,7 @@ class _KpiCard extends StatelessWidget {
     required this.unit,
     required this.icon,
     required this.biState,
+    this.metric,
   });
 
   final String label;
@@ -480,6 +492,7 @@ class _KpiCard extends StatelessWidget {
   final String unit;
   final IconData icon;
   final BIState biState;
+  final MetricInfo? metric;
 
   @override
   Widget build(BuildContext context) {
@@ -500,6 +513,8 @@ class _KpiCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(label, style: Theme.of(context).textTheme.titleSmall),
+              const Spacer(),
+              if (metric != null) MetricInfoButton(metric: metric!),
             ],
           ),
           const SizedBox(height: 10),

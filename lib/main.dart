@@ -13,6 +13,7 @@ import 'screens/profile_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // SmartSole — Entry Point
 //
+// © 2026 SmartSole · MVP v1.0
 // MultiProvider root, dark theme par défaut, navigation avec BottomNav.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -66,18 +67,78 @@ class SmartSoleApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: themeProvider.theme,
           initialRoute: '/onboarding',
-          routes: {
-            '/onboarding': (_) => const OnboardingScreen(),
-            '/pairing': (_) => const _PairingPlaceholder(),
-            '/home': (_) => const HomeShell(),
-            '/dashboard': (_) => const LiveDashboardScreen(),
-            '/summary': (_) => const SessionSummaryScreen(),
-            '/trends': (_) => const HistoryTrendsScreen(),
-            '/imm': (_) => const IMMReportScreen(),
-            '/profile': (_) => const ProfileScreen(),
-          },
-          onUnknownRoute:
-              (_) => MaterialPageRoute(builder: (_) => const HomeShell()),
+          onGenerateRoute: _generateRoute,
+          onUnknownRoute: (_) => _fadeRoute(const HomeShell(), '/home'),
+        );
+      },
+    );
+  }
+
+  /// Custom page transitions — fade + slight slide for every route.
+  static Route<dynamic> _generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case '/onboarding':
+        return _fadeRoute(const OnboardingScreen(), settings.name!);
+      case '/pairing':
+        return _fadeRoute(const _PairingPlaceholder(), settings.name!);
+      case '/home':
+        return _fadeRoute(const HomeShell(), settings.name!);
+      case '/dashboard':
+        return _fadeRoute(const LiveDashboardScreen(), settings.name!);
+      case '/summary':
+        return _slideUpRoute(const SessionSummaryScreen(), settings.name!);
+      case '/trends':
+        return _fadeRoute(const HistoryTrendsScreen(), settings.name!);
+      case '/imm':
+        return _fadeRoute(const IMMReportScreen(), settings.name!);
+      case '/profile':
+        return _fadeRoute(const ProfileScreen(), settings.name!);
+      default:
+        return _fadeRoute(const HomeShell(), '/home');
+    }
+  }
+
+  /// Fade transition with subtle scale.
+  static PageRouteBuilder _fadeRoute(Widget page, String routeName) {
+    return PageRouteBuilder(
+      settings: RouteSettings(name: routeName),
+      transitionDuration: const Duration(milliseconds: 400),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween(begin: 0.96, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Slide-up transition (for modals like session summary).
+  static PageRouteBuilder _slideUpRoute(Widget page, String routeName) {
+    return PageRouteBuilder(
+      settings: RouteSettings(name: routeName),
+      transitionDuration: const Duration(milliseconds: 450),
+      reverseTransitionDuration: const Duration(milliseconds: 350),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 0.15),
+            end: Offset.zero,
+          ).animate(curved),
+          child: FadeTransition(opacity: curved, child: child),
         );
       },
     );
@@ -93,8 +154,10 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  int _previousIndex = 0;
 
   static const List<Widget> _pages = [
     LiveDashboardScreen(),
@@ -103,60 +166,120 @@ class _HomeShellState extends State<HomeShell> {
     ProfileScreen(),
   ];
 
+  void _onTabTapped(int index) {
+    if (index == _currentIndex) return;
+    setState(() {
+      _previousIndex = _currentIndex;
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color:
-              isDark
-                  ? SmartSoleColors.darkSurface.withValues(alpha: 0.85)
-                  : SmartSoleColors.lightSurface.withValues(alpha: 0.9),
-          border: Border(
-            top: BorderSide(
-              color:
-                  isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.black.withValues(alpha: 0.06),
-              width: 0.5,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          // Slide direction depends on tab order
+          final bool goingRight = _currentIndex > _previousIndex;
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween(
+                begin: Offset(goingRight ? 0.05 : -0.05, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
             ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentIndex),
+          child: _pages[_currentIndex],
+        ),
+      ),
+      bottomNavigationBar: _GlassBottomNav(
+        currentIndex: _currentIndex,
+        isDark: isDark,
+        onTap: _onTabTapped,
+      ),
+    );
+  }
+}
+
+// ─── Glassmorphism Bottom Nav ────────────────────────────────────────────────
+
+class _GlassBottomNav extends StatelessWidget {
+  const _GlassBottomNav({
+    required this.currentIndex,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final int currentIndex;
+  final bool isDark;
+  final void Function(int) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color:
+            isDark
+                ? SmartSoleColors.darkSurface.withValues(alpha: 0.88)
+                : SmartSoleColors.lightSurface.withValues(alpha: 0.92),
+        border: Border(
+          top: BorderSide(
+            color:
+                isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.06),
+            width: 0.5,
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavItem(
-                  icon: Icons.grid_view_rounded,
-                  label: 'Live',
-                  isActive: _currentIndex == 0,
-                  onTap: () => setState(() => _currentIndex = 0),
-                ),
-                _NavItem(
-                  icon: Icons.timeline,
-                  label: 'Tendances',
-                  isActive: _currentIndex == 1,
-                  onTap: () => setState(() => _currentIndex = 1),
-                ),
-                _NavItem(
-                  icon: Icons.child_care,
-                  label: 'IMM',
-                  isActive: _currentIndex == 2,
-                  onTap: () => setState(() => _currentIndex = 2),
-                ),
-                _NavItem(
-                  icon: Icons.person_outline,
-                  label: 'Profil',
-                  isActive: _currentIndex == 3,
-                  onTap: () => setState(() => _currentIndex = 3),
-                ),
-              ],
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: SmartSoleColors.biNormal.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                icon: Icons.grid_view_rounded,
+                label: 'Live',
+                isActive: currentIndex == 0,
+                onTap: () => onTap(0),
+              ),
+              _NavItem(
+                icon: Icons.timeline,
+                label: 'Tendances',
+                isActive: currentIndex == 1,
+                onTap: () => onTap(1),
+              ),
+              _NavItem(
+                icon: Icons.child_care,
+                label: 'IMM',
+                isActive: currentIndex == 2,
+                onTap: () => onTap(2),
+              ),
+              _NavItem(
+                icon: Icons.person_outline,
+                label: 'Profil',
+                isActive: currentIndex == 3,
+                onTap: () => onTap(3),
+              ),
+            ],
           ),
         ),
       ),
@@ -166,7 +289,7 @@ class _HomeShellState extends State<HomeShell> {
 
 // ─── Nav Item ───────────────────────────────────────────────────────────────
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   const _NavItem({
     required this.icon,
     required this.label,
@@ -180,6 +303,34 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleCtrl;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnim = Tween(
+      begin: 1.0,
+      end: 0.88,
+    ).animate(CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final Color activeColor = SmartSoleColors.biNormal;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -189,32 +340,75 @@ class _NavItem extends StatelessWidget {
             : SmartSoleColors.textTertiaryLight;
 
     return GestureDetector(
-      onTap: onTap,
+      onTapDown: (_) => _scaleCtrl.forward(),
+      onTapUp: (_) {
+        _scaleCtrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _scaleCtrl.reverse(),
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: SmartSoleDesign.animNormal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color:
-              isActive
-                  ? activeColor.withValues(alpha: 0.08)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadiusSm),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: isActive ? activeColor : inactiveColor),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: AnimatedContainer(
+          duration: SmartSoleDesign.animNormal,
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color:
+                widget.isActive
+                    ? activeColor.withValues(alpha: 0.10)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadiusSm),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: SmartSoleDesign.animNormal,
+                curve: Curves.easeOutCubic,
+                transform: Matrix4.translationValues(
+                  0,
+                  widget.isActive ? -2 : 0,
+                  0,
+                ),
+                child: Icon(
+                  widget.icon,
+                  size: widget.isActive ? 24 : 22,
+                  color: widget.isActive ? activeColor : inactiveColor,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight:
+                      widget.isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: widget.isActive ? activeColor : inactiveColor,
+                ),
+              ),
+              // Active indicator dot
+              AnimatedContainer(
+                duration: SmartSoleDesign.animNormal,
+                margin: const EdgeInsets.only(top: 3),
+                width: widget.isActive ? 4 : 0,
+                height: widget.isActive ? 4 : 0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: activeColor,
+                  boxShadow:
+                      widget.isActive
+                          ? [
+                            BoxShadow(
+                              color: activeColor.withValues(alpha: 0.4),
+                              blurRadius: 6,
+                            ),
+                          ]
+                          : [],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

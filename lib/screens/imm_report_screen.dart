@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
 import '../widgets/narrative_card.dart';
+import '../widgets/metric_info_sheet.dart';
 import '../models/imm_score.dart';
 import '../services/mock_data_service.dart';
 
@@ -43,6 +44,10 @@ class IMMReportScreen extends StatelessWidget {
           title: Text('Rapport IMM', style: textTheme.headlineSmall),
           centerTitle: true,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline, size: 20),
+              onPressed: () => showMetricInfo(context, MetricCatalog.immScore),
+            ),
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_outlined, size: 20),
               onPressed: () {

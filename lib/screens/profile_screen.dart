@@ -234,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // ── Version ───────────────────────────────────────────────
               Text(
-                'SmartSole MVP v4.0 · 2025',
+                'SmartSole MVP v1.0 · © 2026',
                 style: textTheme.labelSmall?.copyWith(
                   color:
                       isDark

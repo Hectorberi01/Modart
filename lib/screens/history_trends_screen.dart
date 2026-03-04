@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
+import '../widgets/metric_info_sheet.dart';
 import '../models/session_features.dart';
 import '../services/mock_data_service.dart';
 
@@ -41,6 +42,19 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
       baseCadence: 98,
       baseAsymmetry: 18,
     );
+  }
+
+  MetricInfo _metricInfoForIndex(int index) {
+    switch (index) {
+      case 0:
+        return MetricCatalog.hotspot;
+      case 1:
+        return MetricCatalog.rollScore;
+      case 2:
+        return MetricCatalog.asymmetry;
+      default:
+        return MetricCatalog.hotspot;
+    }
   }
 
   @override
@@ -130,9 +144,17 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(left: 4),
-                      child: Text(
-                        _metricLabels[_selectedMetric],
-                        style: textTheme.titleLarge,
+                      child: Row(
+                        children: [
+                          Text(
+                            _metricLabels[_selectedMetric],
+                            style: textTheme.titleLarge,
+                          ),
+                          const SizedBox(width: 8),
+                          MetricInfoButton(
+                            metric: _metricInfoForIndex(_selectedMetric),
+                          ),
+                        ],
                       ),
                     ),
                     Padding(
