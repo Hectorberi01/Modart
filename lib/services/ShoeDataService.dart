@@ -22,6 +22,11 @@ class ShoeDataService {
     print("Adding sample: $sample");
     _samples.add(sample);
     _controller.add(sample);
+    print("pas de la session: ${computeTotalSteps()}");
+    print("distance de la session: ${estimateDistanceMeters()}");
+    print("cadence de la session: ${estimateCadence()}");
+    print("score de posture de la session: ${computePostureScore()}");
+    print("score global de la session: ${computeGlobalScore()}");
   }
 
   void resetSession() {

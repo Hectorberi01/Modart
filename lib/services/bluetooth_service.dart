@@ -35,6 +35,8 @@ class AppBluetoothService {
   Stream<BluetoothAdapterState> get adapterState =>
       FlutterBluePlus.adapterState;
 
+  bool _simulationStarted = false;
+
   Future<ScanStartResult> startScan() async {
     print("--- AppBluetoothService: Starting scan sequence ---");
 
@@ -129,7 +131,10 @@ class AppBluetoothService {
               );
 
               _shoeDataService.addSample(sample);*/
-              startRandomSimulation();
+              if (!_simulationStarted) {
+                _simulationStarted = true;
+                startRandomSimulation();
+              }
             });
           }
         }
@@ -144,7 +149,9 @@ class AppBluetoothService {
   }
 
   void startRandomSimulation() {
-    print("--- Starting Random Sensor Simulation ---");
+    if (_simulationTimer != null) return;
+
+    print("Starting random simulation");
 
     _simulationTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       _steps += _random.nextInt(2);

@@ -12,6 +12,21 @@ class ShoeSample {
     required this.badPosition,
     required this.timestamp,
   });
+
+  @override
+  String toString() {
+    return 'ShoeSample(steps: $steps, angleX: $angleX, angleY: $angleY, badPosition: $badPosition, timestamp: $timestamp)';
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'steps': steps,
+      'angleX': angleX,
+      'angleY': angleY,
+      'badPosition': badPosition ? 1 : 0,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
 }
 
 class SessionResult {
