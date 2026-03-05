@@ -18,6 +18,7 @@ class AppLocalizations {
       locale.languageCode == 'fr' ? frStrings : enStrings;
 
   String _t(String key) => _strings[key] ?? key;
+  String t(String key) => _t(key);
 
   // Splash
   String get splashSubtitle => _t('splashSubtitle');
@@ -28,6 +29,10 @@ class AppLocalizations {
   String get navPosition => _t('navPosition');
   String get navHistory => _t('navHistory');
   String get navSettings => _t('navSettings');
+  String get navLive => _t('navLive');
+  String get navTrends => _t('navTrends');
+  String get navPro => _t('navPro');
+  String get navChildTracking => _t('navChildTracking');
 
   // Dashboard
   String get dashTitle => _t('dashTitle');
@@ -44,6 +49,17 @@ class AppLocalizations {
   String get dashGlobalScoreLabel => _t('dashGlobalScoreLabel');
   String get dashFinishSession => _t('dashFinishSession');
   String get dashSessionSaved => _t('dashSessionSaved');
+  String get dashPressureMap => _t('dashPressureMap');
+  String get dashRealTimeAnalysis => _t('dashRealTimeAnalysis');
+  String get dashStartSession => _t('dashStartSession');
+  String get dashSegment => _t('dashSegment');
+  String get dashGlobalScore => _t('dashGlobalScore');
+  String get dashSpeed => _t('dashSpeed');
+  String get dashBadPosture => _t('dashBadPosture');
+  String get dashBtOn => _t('dashBtOn');
+  String get dashBtOff => _t('dashBtOff');
+  String get dashStart => _t('dashStart');
+  String get dashStop => _t('dashStop');
 
   // Bluetooth
   String get btTitle => _t('btTitle');
@@ -77,6 +93,7 @@ class AppLocalizations {
   String get historyNoSession => _t('historyNoSession');
   String get historyNoSessionDesc => _t('historyNoSessionDesc');
   String get historyError => _t('historyError');
+  String get historySteps => _t('historySteps');
 
   // Settings
   String get settingsTitle => _t('settingsTitle');
@@ -106,6 +123,177 @@ class AppLocalizations {
   String get settingsClearConfirm => _t('settingsClearConfirm');
   String get settingsClearedSnack => _t('settingsClearedSnack');
 
+  // Profile
+  String get profileEditTooltip => _t('profileEditTooltip');
+  String get profilePersonalInfo => _t('profilePersonalInfo');
+  String get profileFirstName => _t('profileFirstName');
+  String get profileEmail => _t('profileEmail');
+  String get profileGender => _t('profileGender');
+  String get profileGenderMale => _t('profileGenderMale');
+  String get profileGenderFemale => _t('profileGenderFemale');
+  String get profileShoeSize => _t('profileShoeSize');
+  String get profileShoeSizeEdit => _t('profileShoeSizeEdit');
+  String get profileWeight => _t('profileWeight');
+  String get profileWeightEdit => _t('profileWeightEdit');
+  String get profileHeight => _t('profileHeight');
+  String get profileHeightEdit => _t('profileHeightEdit');
+  String get profileSave => _t('profileSave');
+  String get profileCancel => _t('profileCancel');
+  String get profileSaveError => _t('profileSaveError');
+  String get profileDefaultName => _t('profileDefaultName');
+  String get profileTypeUrban => _t('profileTypeUrban');
+  String get profileTypeKids => _t('profileTypeKids');
+  String get profileTypePro => _t('profileTypePro');
+
+  // GDPR
+  String get gdprTitle => _t('gdprTitle');
+  String get gdprCloud => _t('gdprCloud');
+  String get gdprAnalytics => _t('gdprAnalytics');
+  String get gdprPush => _t('gdprPush');
+
+  // Data & Account
+  String get dataSection => _t('dataSection');
+  String get dataExport => _t('dataExport');
+  String get dataExportWip => _t('dataExportWip');
+  String get dataSignOut => _t('dataSignOut');
+  String get dataDeleteAccount => _t('dataDeleteAccount');
+  String get dataDeleteTitle => _t('dataDeleteTitle');
+  String get dataDeleteMsg => _t('dataDeleteMsg');
+  String get dataDeleteCancel => _t('dataDeleteCancel');
+  String get dataDeleteConfirm => _t('dataDeleteConfirm');
+
+  // Auth
+  String get authWelcomeBack => _t('authWelcomeBack');
+  String get authWelcomeBackSub => _t('authWelcomeBackSub');
+  String get authParentSpace => _t('authParentSpace');
+  String get authParentSpaceSub => _t('authParentSpaceSub');
+  String get authClinicianSpace => _t('authClinicianSpace');
+  String get authClinicianSpaceSub => _t('authClinicianSpaceSub');
+  String get authEmail => _t('authEmail');
+  String get authEmailHint => _t('authEmailHint');
+  String get authEmailRequired => _t('authEmailRequired');
+  String get authEmailInvalid => _t('authEmailInvalid');
+  String get authPassword => _t('authPassword');
+  String get authPasswordRequired => _t('authPasswordRequired');
+  String get authProEmail => _t('authProEmail');
+  String get authProEmailHint => _t('authProEmailHint');
+  String get authCabinetCode => _t('authCabinetCode');
+  String get authCabinetCodeHint => _t('authCabinetCodeHint');
+  String get authCabinetCodeRequired => _t('authCabinetCodeRequired');
+  String get authCabinetCodeEmpty => _t('authCabinetCodeEmpty');
+  String get authCabinetCodeInvalid => _t('authCabinetCodeInvalid');
+  String get authForgotPassword => _t('authForgotPassword');
+  String get authResetSent => _t('authResetSent');
+  String get authEnterEmailReset => _t('authEnterEmailReset');
+  String get authResetEmailSent => _t('authResetEmailSent');
+  String get authLoginSuccess => _t('authLoginSuccess');
+  String get authWelcome => _t('authWelcome');
+  String get authSignIn => _t('authSignIn');
+  String get authNoAccount => _t('authNoAccount');
+  String get authRegister => _t('authRegister');
+  String get authGdprFooter => _t('authGdprFooter');
+  String get authVersionFooter => _t('authVersionFooter');
+
+  // Onboarding
+  String get onboardingBiomechanics => _t('onboardingBiomechanics');
+  String get onboardingBiomechanicsDesc => _t('onboardingBiomechanicsDesc');
+  String get onboardingWalkConscious => _t('onboardingWalkConscious');
+  String get onboardingWalkConsciousSub => _t('onboardingWalkConsciousSub');
+  String get onboardingWalkConsciousDesc => _t('onboardingWalkConsciousDesc');
+  String get onboardingSelectProfile => _t('onboardingSelectProfile');
+  String get onboardingSelectProfileSub => _t('onboardingSelectProfileSub');
+  String get onboardingUrbanTitle => _t('onboardingUrbanTitle');
+  String get onboardingUrbanSub => _t('onboardingUrbanSub');
+  String get onboardingKidsTitle => _t('onboardingKidsTitle');
+  String get onboardingKidsSub => _t('onboardingKidsSub');
+  String get onboardingProTitle => _t('onboardingProTitle');
+  String get onboardingProSub => _t('onboardingProSub');
+  String get onboardingCreateAccount => _t('onboardingCreateAccount');
+  String get onboardingNext => _t('onboardingNext');
+  String get onboardingAlreadyAccount => _t('onboardingAlreadyAccount');
+  String get onboardingSignIn => _t('onboardingSignIn');
+
+  // Session Summary
+  String get summaryTitle => _t('summaryTitle');
+  String get summaryGlobalScore => _t('summaryGlobalScore');
+  String get summaryHotspot => _t('summaryHotspot');
+  String get summaryRoll => _t('summaryRoll');
+  String get summaryAsymmetry => _t('summaryAsymmetry');
+  String get summaryExcellent => _t('summaryExcellent');
+  String get summaryCorrect => _t('summaryCorrect');
+  String get summaryVigilance => _t('summaryVigilance');
+  String get summaryAlert => _t('summaryAlert');
+  String get summaryPainTitle => _t('summaryPainTitle');
+  String get summaryPainSubtitle => _t('summaryPainSubtitle');
+  String get summaryExportPdf => _t('summaryExportPdf');
+  String get summaryShare => _t('summaryShare');
+  String get summaryNarrativeForefoot => _t('summaryNarrativeForefoot');
+  String get summaryNarrativeRoll => _t('summaryNarrativeRoll');
+  String get summaryNarrativeAsymmetryFmt => _t('summaryNarrativeAsymmetryFmt');
+  String get summaryNarrativeGood => _t('summaryNarrativeGood');
+
+  // History Trends
+  String get trendsTitle => _t('trendsTitle');
+  String get trendsGlobalScore => _t('trendsGlobalScore');
+  String get trendsPostureScore => _t('trendsPostureScore');
+  String get trendsSteps => _t('trendsSteps');
+  String get trendsError => _t('trendsError');
+  String get trendsEmpty => _t('trendsEmpty');
+  String get trendsEmptyDesc => _t('trendsEmptyDesc');
+  String get trendsLastSessions => _t('trendsLastSessions');
+  String get trendsMean => _t('trendsMean');
+  String get trendsTrend => _t('trendsTrend');
+  String get trendsSessions => _t('trendsSessions');
+  String get trendsStable => _t('trendsStable');
+  String get trendsScoreVsPosture => _t('trendsScoreVsPosture');
+  String get trendsSessionsFmt => _t('trendsSessionsFmt');
+  String get trendsGlobalScoreLegend => _t('trendsGlobalScoreLegend');
+  String get trendsPostureLegend => _t('trendsPostureLegend');
+
+  // IMM Report
+  String get immTitle => _t('immTitle');
+  String get immEvolution => _t('immEvolution');
+  String get immSessions => _t('immSessions');
+  String get immMaturityScore => _t('immMaturityScore');
+  String get immPercentileFmt => _t('immPercentileFmt');
+  String get immAboveAvg => _t('immAboveAvg');
+  String get immAverage => _t('immAverage');
+  String get immBelowAvg => _t('immBelowAvg');
+  String get immFarBelowAvg => _t('immFarBelowAvg');
+  String get immCadence => _t('immCadence');
+  String get immAsymmetry => _t('immAsymmetry');
+  String get immDoubleSupport => _t('immDoubleSupport');
+  String get immVariability => _t('immVariability');
+  String get immNormCadenceFmt => _t('immNormCadenceFmt');
+  String get immNormAsymmetry => _t('immNormAsymmetry');
+  String get immNormDoubleSupport => _t('immNormDoubleSupport');
+  String get immNormVariability => _t('immNormVariability');
+  String get immFatigue => _t('immFatigue');
+  String get immNoSession => _t('immNoSession');
+  String get immNoSessionDesc => _t('immNoSessionDesc');
+  String get immNarrativeLow => _t('immNarrativeLow');
+  String get immNarrativeFatigue => _t('immNarrativeFatigue');
+  String get immNarrativeAsymmetry => _t('immNarrativeAsymmetry');
+  String get immNarrativeGood => _t('immNarrativeGood');
+
+  // Pro Dashboard
+  String get proTitle => _t('proTitle');
+  String get proToolsTitle => _t('proToolsTitle');
+  String get proToolsDesc => _t('proToolsDesc');
+  String get proAvgScore => _t('proAvgScore');
+  String get proAvgPosture => _t('proAvgPosture');
+  String get proTotalSteps => _t('proTotalSteps');
+  String get proRecentSessions => _t('proRecentSessions');
+  String get proNoSession => _t('proNoSession');
+  String get proNoSessionDesc => _t('proNoSessionDesc');
+  String get proPostureLabel => _t('proPostureLabel');
+
+  // Metric Info
+  String get metricWhyImportant => _t('metricWhyImportant');
+  String get metricNormalRange => _t('metricNormalRange');
+  String get metricAlertAdvice => _t('metricAlertAdvice');
+  String get metricTapMore => _t('metricTapMore');
+
   // Position
   String get positionTitle => _t('positionTitle');
   String get positionNoShoe => _t('positionNoShoe');
@@ -133,6 +321,11 @@ class AppLocalizations {
 
   // Speed gauge
   String get speedCurrent => _t('speedCurrent');
+
+  // Zones
+  String get zoneForefoot => _t('zoneForefoot');
+  String get zoneMidfoot => _t('zoneMidfoot');
+  String get zoneHeel => _t('zoneHeel');
 }
 
 class _AppLocalizationsDelegate

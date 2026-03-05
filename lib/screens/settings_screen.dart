@@ -90,7 +90,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() => _isEditingPersonal = false);
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la sauvegarde.'), behavior: SnackBarBehavior.floating),
+          SnackBar(content: Text(AppLocalizations.of(context).profileSaveError), behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -122,7 +122,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final TextTheme textTheme = Theme.of(context).textTheme;
 
-    final String displayName = profile?.displayName ?? 'Utilisateur';
+    final String displayName = profile?.displayName ?? l.profileDefaultName;
     final String email = profile?.email ?? '';
     final ProfileType profileType = profile?.profileType ?? ProfileType.urban;
     final UserGender gender = profile?.gender ?? UserGender.male;
@@ -146,7 +146,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             if (!_isEditingPersonal && profile != null)
               IconButton(
                 icon: Icon(Icons.edit_outlined, color: SmartSoleColors.biNormal, size: 22),
-                tooltip: 'Modifier le profil',
+                tooltip: l.profileEditTooltip,
                 onPressed: () {
                   _loadFromProfile();
                   setState(() => _isEditingPersonal = true);
@@ -231,7 +231,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 24),
 
               // ── Informations personnelles
-              _SectionHeader(title: 'Informations personnelles', icon: Icons.person_outline),
+              _SectionHeader(title: l.profilePersonalInfo, icon: Icons.person_outline),
               const SizedBox(height: 10),
               AnimatedCrossFade(
                 duration: const Duration(milliseconds: 280),
@@ -240,17 +240,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 firstChild: GlassBentoCard(
                   child: Column(
                     children: [
-                      _InfoTile(icon: Icons.badge_outlined, label: 'Prénom', value: displayName),
+                      _InfoTile(icon: Icons.badge_outlined, label: l.profileFirstName, value: displayName),
                       _divider(isDark),
-                      _InfoTile(icon: Icons.email_outlined, label: 'Email', value: email.isNotEmpty ? email : '—'),
+                      _InfoTile(icon: Icons.email_outlined, label: l.profileEmail, value: email.isNotEmpty ? email : '—'),
                       _divider(isDark),
-                      _InfoTile(icon: Icons.wc_outlined, label: 'Genre', value: gender == UserGender.male ? 'Homme' : 'Femme'),
+                      _InfoTile(icon: Icons.wc_outlined, label: l.profileGender, value: gender == UserGender.male ? l.profileGenderMale : l.profileGenderFemale),
                       _divider(isDark),
-                      _InfoTile(icon: Icons.straighten, label: 'Pointure', value: shoeSize > 0 ? '${shoeSize.toStringAsFixed(0)} EU' : '—'),
+                      _InfoTile(icon: Icons.straighten, label: l.profileShoeSize, value: shoeSize > 0 ? '${shoeSize.toStringAsFixed(0)} EU' : '—'),
                       _divider(isDark),
-                      _InfoTile(icon: Icons.monitor_weight_outlined, label: 'Poids', value: weightKg > 0 ? '${weightKg.toStringAsFixed(0)} kg' : '—'),
+                      _InfoTile(icon: Icons.monitor_weight_outlined, label: l.profileWeight, value: weightKg > 0 ? '${weightKg.toStringAsFixed(0)} kg' : '—'),
                       _divider(isDark),
-                      _InfoTile(icon: Icons.height, label: 'Taille', value: heightCm > 0 ? '${heightCm.toStringAsFixed(0)} cm' : '—'),
+                      _InfoTile(icon: Icons.height, label: l.profileHeight, value: heightCm > 0 ? '${heightCm.toStringAsFixed(0)} cm' : '—'),
                     ],
                   ),
                 ),
@@ -258,7 +258,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 secondChild: GlassBentoCard(
                   child: Column(
                     children: [
-                      _EditField(icon: Icons.badge_outlined, label: 'Prénom', controller: _nameCtrl),
+                      _EditField(icon: Icons.badge_outlined, label: l.profileFirstName, controller: _nameCtrl),
                       _divider(isDark),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -271,11 +271,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                       _divider(isDark),
-                      _EditField(icon: Icons.straighten, label: 'Pointure (EU)', controller: _shoeSizeCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                      _EditField(icon: Icons.straighten, label: l.profileShoeSizeEdit, controller: _shoeSizeCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                       _divider(isDark),
-                      _EditField(icon: Icons.monitor_weight_outlined, label: 'Poids (kg)', controller: _weightCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                      _EditField(icon: Icons.monitor_weight_outlined, label: l.profileWeightEdit, controller: _weightCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                       _divider(isDark),
-                      _EditField(icon: Icons.height, label: 'Taille (cm)', controller: _heightCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: false), inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+                      _EditField(icon: Icons.height, label: l.profileHeightEdit, controller: _heightCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: false), inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -287,7 +287,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 side: BorderSide(color: isDark ? SmartSoleColors.glassBorderDark : SmartSoleColors.glassBorderLight),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadiusSm)),
                               ),
-                              child: const Text('Annuler'),
+                              child: Text(l.profileCancel),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -296,7 +296,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               onPressed: authState.isLoading ? null : _savePersonalInfo,
                               child: authState.isLoading
                                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Text('Sauvegarder'),
+                                  : Text(l.profileSave),
                             ),
                           ),
                         ],
@@ -411,7 +411,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // ══════════════════════════════════════════════════════════════
               // CONSENTEMENTS RGPD
               // ══════════════════════════════════════════════════════════════
-              const _SectionHeader(title: 'Consentements RGPD', icon: Icons.shield_outlined),
+              _SectionHeader(title: l.gdprTitle, icon: Icons.shield_outlined),
               const SizedBox(height: 10),
               GlassBentoCard(
                 child: Column(
@@ -419,7 +419,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _SettingsTile(
                       icon: Icons.cloud_outlined,
                       iconColor: SmartSoleColors.biTeal,
-                      label: 'Sauvegarde cloud',
+                      label: l.gdprCloud,
                       trailing: Switch.adaptive(
                         value: consentCloud,
                         onChanged: (v) => _updateConsent('consentCloud', v),
@@ -431,7 +431,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _SettingsTile(
                       icon: Icons.bar_chart,
                       iconColor: SmartSoleColors.biTeal,
-                      label: 'Analytics anonymes',
+                      label: l.gdprAnalytics,
                       trailing: Switch.adaptive(
                         value: consentAnalytics,
                         onChanged: (v) => _updateConsent('consentAnalytics', v),
@@ -443,7 +443,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _SettingsTile(
                       icon: Icons.notifications_outlined,
                       iconColor: SmartSoleColors.biTeal,
-                      label: 'Notifications push',
+                      label: l.gdprPush,
                       trailing: Switch.adaptive(
                         value: consentPush,
                         onChanged: (v) => _updateConsent('consentPush', v),
@@ -459,7 +459,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // ══════════════════════════════════════════════════════════════
               // DONNÉES & COMPTE
               // ══════════════════════════════════════════════════════════════
-              const _SectionHeader(title: 'Données & Compte', icon: Icons.storage_outlined),
+              _SectionHeader(title: l.dataSection, icon: Icons.storage_outlined),
               const SizedBox(height: 10),
               GlassBentoCard(
                 child: Column(
@@ -467,10 +467,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _SettingsTile(
                       icon: Icons.download_outlined,
                       iconColor: isDark ? SmartSoleColors.textPrimaryDark : SmartSoleColors.textPrimaryLight,
-                      label: 'Exporter mes données (JSON)',
+                      label: l.dataExport,
                       trailing: Icon(Icons.chevron_right_rounded, color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight, size: 20),
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export en cours de développement'), behavior: SnackBarBehavior.floating));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.dataExportWip), behavior: SnackBarBehavior.floating));
                       },
                     ),
                     _divider(isDark),
@@ -485,14 +485,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _SettingsTile(
                       icon: Icons.logout,
                       iconColor: SmartSoleColors.biWarning,
-                      label: 'Se déconnecter',
+                      label: l.dataSignOut,
                       onTap: _signOut,
                     ),
                     _divider(isDark),
                     _SettingsTile(
                       icon: Icons.delete_forever_outlined,
                       iconColor: SmartSoleColors.biAlert,
-                      label: 'Supprimer mon compte',
+                      label: l.dataDeleteAccount,
                       labelColor: SmartSoleColors.biAlert,
                       onTap: () => _showDeleteConfirm(context),
                     ),
@@ -553,11 +553,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ProfileType.pro => SmartSoleColors.biNavy,
   };
 
-  String _profileLabel(ProfileType type) => switch (type) {
-    ProfileType.urban => 'Actif Urbain',
-    ProfileType.kids => 'Parent – Suivi Enfant',
-    ProfileType.pro => 'Professionnel Santé',
-  };
+  String _profileLabel(ProfileType type) {
+    final l = AppLocalizations.of(context);
+    return switch (type) {
+      ProfileType.urban => l.profileTypeUrban,
+      ProfileType.kids => l.profileTypeKids,
+      ProfileType.pro => l.profileTypePro,
+    };
+  }
 
   void _showLanguagePicker(BuildContext context, AppLocalizations l) {
     final current = ref.read(appSettingsProvider).locale;
@@ -642,19 +645,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showDeleteConfirm(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? SmartSoleColors.darkCard : SmartSoleColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Supprimer le compte ?', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? SmartSoleColors.textPrimaryDark : SmartSoleColors.textPrimaryLight)),
-        content: Text('Cette action est irréversible. Toutes vos données seront effacées définitivement.', style: TextStyle(color: isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight)),
+        title: Text(l.dataDeleteTitle, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? SmartSoleColors.textPrimaryDark : SmartSoleColors.textPrimaryLight)),
+        content: Text(l.dataDeleteMsg, style: TextStyle(color: isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Annuler', style: TextStyle(color: isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.dataDeleteCancel, style: TextStyle(color: isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: SmartSoleColors.biAlert),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+            child: Text(l.dataDeleteConfirm, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

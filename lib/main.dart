@@ -208,23 +208,23 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return base;
   }
 
-  List<_NavItemData> get _navItems {
+  List<_NavItemData> _navItems(AppLocalizations l) {
     if (_profileType == ProfileType.kids) {
       return [
-        _NavItemData(icon: Icons.child_care, label: 'Suivi Enfant'),
-        _NavItemData(icon: Icons.history, label: 'Historique'),
-        _NavItemData(icon: Icons.settings, label: 'Réglages'),
+        _NavItemData(icon: Icons.child_care, label: l.navChildTracking),
+        _NavItemData(icon: Icons.history, label: l.navHistory),
+        _NavItemData(icon: Icons.settings, label: l.navSettings),
       ];
     }
     final base = <_NavItemData>[
-      _NavItemData(icon: Icons.grid_view_rounded, label: 'Live'),
-      _NavItemData(icon: Icons.history, label: 'Historique'),
-      _NavItemData(icon: Icons.timeline, label: 'Tendances'),
+      _NavItemData(icon: Icons.grid_view_rounded, label: l.navLive),
+      _NavItemData(icon: Icons.history, label: l.navHistory),
+      _NavItemData(icon: Icons.timeline, label: l.navTrends),
     ];
     if (_profileType == ProfileType.pro) {
-      base.add(const _NavItemData(icon: Icons.medical_services, label: 'Pro'));
+      base.add(_NavItemData(icon: Icons.medical_services, label: l.navPro));
     }
-    base.add(const _NavItemData(icon: Icons.settings, label: 'Réglages'));
+    base.add(_NavItemData(icon: Icons.settings, label: l.navSettings));
     return base;
   }
 
@@ -263,8 +263,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     final pages = _pages;
-    final navItems = _navItems;
+    final navItems = _navItems(l);
     final safeIndex = _currentIndex.clamp(0, pages.length - 1);
 
     return Scaffold(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,6 +11,7 @@ import '../theme/app_theme.dart';
 
 class MetricInfo {
   const MetricInfo({
+    required this.key,
     required this.title,
     required this.unit,
     required this.description,
@@ -20,6 +22,7 @@ class MetricInfo {
     this.color,
   });
 
+  final String key;
   final String title;
   final String unit;
   final String description;
@@ -28,12 +31,31 @@ class MetricInfo {
   final String? alertAdvice;
   final IconData? icon;
   final Color? color;
+
+  /// Returns a localized copy using AppLocalizations translation keys.
+  MetricInfo localized(AppLocalizations l) {
+    final t = l.t('metric${key}Title');
+    // If no translation found (returns the key), fall back to original
+    if (t == 'metric${key}Title') return this;
+    return MetricInfo(
+      key: key,
+      title: l.t('metric${key}Title'),
+      unit: l.t('metric${key}Unit'),
+      description: l.t('metric${key}Desc'),
+      whyItMatters: l.t('metric${key}Why'),
+      normalRange: l.t('metric${key}Range'),
+      alertAdvice: alertAdvice != null ? l.t('metric${key}Alert') : null,
+      icon: icon,
+      color: color,
+    );
+  }
 }
 
 // ── Catalogue des métriques BI ──────────────────────────────────────────────
 
 abstract final class MetricCatalog {
   static const cadence = MetricInfo(
+    key: 'Cadence',
     title: 'Cadence',
     unit: 'pas/min',
     description:
@@ -51,6 +73,7 @@ abstract final class MetricCatalog {
   );
 
   static const speed = MetricInfo(
+    key: 'Speed',
     title: 'Vitesse',
     unit: 'km/h',
     description:
@@ -65,6 +88,7 @@ abstract final class MetricCatalog {
   );
 
   static const mlpi = MetricInfo(
+    key: 'Mlpi',
     title: 'MLPI',
     unit: 'index',
     description:
@@ -83,6 +107,7 @@ abstract final class MetricCatalog {
   );
 
   static const hotspot = MetricInfo(
+    key: 'Hotspot',
     title: 'Hotspot Score',
     unit: '/100',
     description:
@@ -100,6 +125,7 @@ abstract final class MetricCatalog {
   );
 
   static const rollScore = MetricInfo(
+    key: 'Roll',
     title: 'Roll Score',
     unit: '/100',
     description:
@@ -114,6 +140,7 @@ abstract final class MetricCatalog {
   );
 
   static const asymmetry = MetricInfo(
+    key: 'Asymmetry',
     title: 'Asymétrie',
     unit: '%',
     description:
@@ -131,6 +158,7 @@ abstract final class MetricCatalog {
   );
 
   static const immScore = MetricInfo(
+    key: 'Imm',
     title: 'Score IMM',
     unit: '/100',
     description:
@@ -149,6 +177,7 @@ abstract final class MetricCatalog {
   );
 
   static const segment = MetricInfo(
+    key: 'Segment',
     title: 'Segment de marche',
     unit: '',
     description:
@@ -170,6 +199,8 @@ abstract final class MetricCatalog {
 void showMetricInfo(BuildContext context, MetricInfo info) {
   final bool isDark = Theme.of(context).brightness == Brightness.dark;
   final TextTheme textTheme = Theme.of(context).textTheme;
+  final l = AppLocalizations.of(context);
+  info = info.localized(l);
   final Color accent = info.color ?? SmartSoleColors.biTeal;
 
   showModalBottomSheet(
@@ -264,7 +295,7 @@ void showMetricInfo(BuildContext context, MetricInfo info) {
 
               // Pourquoi c'est important
               _InfoSection(
-                title: 'Pourquoi c\'est important',
+                title: l.metricWhyImportant,
                 content: info.whyItMatters,
                 icon: Icons.lightbulb_outline,
                 color: SmartSoleColors.biWarning,
@@ -275,7 +306,7 @@ void showMetricInfo(BuildContext context, MetricInfo info) {
 
               // Plage normale
               _InfoSection(
-                title: 'Plage normale',
+                title: l.metricNormalRange,
                 content: info.normalRange,
                 icon: Icons.check_circle_outline,
                 color: SmartSoleColors.biNormal,
@@ -287,7 +318,7 @@ void showMetricInfo(BuildContext context, MetricInfo info) {
               if (info.alertAdvice != null) ...[
                 const SizedBox(height: 12),
                 _InfoSection(
-                  title: 'En cas d\'alerte',
+                  title: l.metricAlertAdvice,
                   content: info.alertAdvice!,
                   icon: Icons.warning_amber_rounded,
                   color: SmartSoleColors.biAlert,
@@ -525,7 +556,9 @@ class _TooltipBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color accent = metric.color ?? SmartSoleColors.biTeal;
+    final l = AppLocalizations.of(context);
+    final localizedMetric = metric.localized(l);
+    final Color accent = localizedMetric.color ?? SmartSoleColors.biTeal;
 
     return Container(
       constraints: BoxConstraints(maxWidth: maxWidth),
@@ -559,20 +592,20 @@ class _TooltipBubble extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(metric.icon ?? Icons.info_outline, size: 16, color: accent),
+              Icon(localizedMetric.icon ?? Icons.info_outline, size: 16, color: accent),
               const SizedBox(width: 8),
               Text(
-                metric.title,
+                localizedMetric.title,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: accent,
                 ),
               ),
-              if (metric.unit.isNotEmpty) ...[
+              if (localizedMetric.unit.isNotEmpty) ...[
                 const SizedBox(width: 6),
                 Text(
-                  '(${metric.unit})',
+                  '(${localizedMetric.unit})',
                   style: TextStyle(
                     fontSize: 10,
                     color:
@@ -586,7 +619,7 @@ class _TooltipBubble extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            metric.description,
+            localizedMetric.description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -600,7 +633,7 @@ class _TooltipBubble extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Appuyez pour en savoir plus →',
+            l.metricTapMore,
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,

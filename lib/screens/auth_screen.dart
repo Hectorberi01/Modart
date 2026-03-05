@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../providers.dart';
@@ -84,13 +85,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     if (_type == ProfileType.pro) {
       final code = _proCodeCtrl.text.trim();
       if (code.isEmpty) {
-        _showSnack('Veuillez saisir votre code cabinet.');
+        _showSnack(AppLocalizations.of(context).authCabinetCodeEmpty);
         return;
       }
       final validCode = await auth.validateCabinetCode(code);
       if (!mounted) return;
       if (!validCode) {
-        _showSnack('Code cabinet invalide ou inexistant.');
+        _showSnack(AppLocalizations.of(context).authCabinetCodeInvalid);
         return;
       }
     }
@@ -110,14 +111,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   Future<void> _onForgotPassword() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      _showSnack('Entrez votre email pour reinitialiser le mot de passe.');
+      _showSnack(AppLocalizations.of(context).authEnterEmailReset);
       return;
     }
     final auth = ref.read(authProvider.notifier);
     final ok = await auth.sendPasswordReset(email);
     if (ok && mounted) {
       setState(() => _resetSent = true);
-      _showSnack('Email de reinitialisation envoye a $email');
+      _showSnack('${AppLocalizations.of(context).authResetEmailSent} $email');
     }
   }
 
@@ -192,7 +193,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        'Connexion reussie !',
+                        AppLocalizations.of(ctx).authLoginSuccess,
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -201,7 +202,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Bienvenue sur SmartSole',
+                        AppLocalizations.of(ctx).authWelcome,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white70,
@@ -282,21 +283,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   // -- Header
 
   Widget _buildHeader(TextTheme tt, bool isDark) {
+    final l = AppLocalizations.of(context);
     final (icon, title, sub) = switch (_type) {
       ProfileType.urban => (
         Icons.directions_walk,
-        'Bon retour',
-        'Connectez-vous pour acceder a votre analyse.',
+        l.authWelcomeBack,
+        l.authWelcomeBackSub,
       ),
       ProfileType.kids => (
         Icons.child_care,
-        'Espace Parent',
-        'Entrez votre code PIN pour acceder au suivi.',
+        l.authParentSpace,
+        l.authParentSpaceSub,
       ),
       ProfileType.pro => (
         Icons.local_hospital_outlined,
-        'Espace Clinicien',
-        'Connexion securisee pour professionnels de sante.',
+        l.authClinicianSpace,
+        l.authClinicianSpaceSub,
       ),
     };
 
@@ -378,33 +380,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   // -- Urban form (email + password)
 
   Widget _buildEmailForm(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
         children: [
           _AuthField(
             controller: _emailCtrl,
-            label: 'Email',
-            hint: 'thomas@smartsole.io',
+            label: l.authEmail,
+            hint: l.authEmailHint,
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             isDark: isDark,
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Email requis';
-              if (!v.contains('@')) return 'Email invalide';
+              if (v == null || v.isEmpty) return l.authEmailRequired;
+              if (!v.contains('@')) return l.authEmailInvalid;
               return null;
             },
           ),
           const SizedBox(height: 16),
           _AuthField(
             controller: _passCtrl,
-            label: 'Mot de passe',
+            label: l.authPassword,
             hint: '--------',
             icon: Icons.lock_outline,
             obscure: _obscurePass,
             isDark: isDark,
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Mot de passe requis';
+              if (v == null || v.isEmpty) return l.authPasswordRequired;
               return null;
             },
             suffixIcon: IconButton(
@@ -430,8 +433,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               ),
               child: Text(
                 _resetSent
-                    ? 'Email envoye'
-                    : 'Mot de passe oublie ?',
+                    ? l.authResetSent
+                    : l.authForgotPassword,
                 style: TextStyle(
                   fontSize: 12,
                   color: _resetSent
@@ -449,33 +452,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   // -- Pro form
 
   Widget _buildProForm(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
         children: [
           _AuthField(
             controller: _emailCtrl,
-            label: 'Email professionnel',
-            hint: 'dr.amara@cabinet.fr',
+            label: l.authProEmail,
+            hint: l.authProEmailHint,
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             isDark: isDark,
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Email requis';
-              if (!v.contains('@')) return 'Email invalide';
+              if (v == null || v.isEmpty) return l.authEmailRequired;
+              if (!v.contains('@')) return l.authEmailInvalid;
               return null;
             },
           ),
           const SizedBox(height: 16),
           _AuthField(
             controller: _passCtrl,
-            label: 'Mot de passe',
+            label: l.authPassword,
             hint: '--------',
             icon: Icons.lock_outline,
             obscure: _obscurePass,
             isDark: isDark,
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Mot de passe requis';
+              if (v == null || v.isEmpty) return l.authPasswordRequired;
               return null;
             },
             suffixIcon: IconButton(
@@ -492,12 +496,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           const SizedBox(height: 16),
           _AuthField(
             controller: _proCodeCtrl,
-            label: 'Code cabinet',
-            hint: 'ex: CAB-2026',
+            label: l.authCabinetCode,
+            hint: l.authCabinetCodeHint,
             icon: Icons.local_hospital_outlined,
             isDark: isDark,
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Code cabinet requis';
+              if (v == null || v.trim().isEmpty) return l.authCabinetCodeRequired;
               return null;
             },
           ),
@@ -512,7 +516,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'Mot de passe oublie ?',
+                l.authForgotPassword,
                 style: TextStyle(fontSize: 12, color: SmartSoleColors.biTeal),
               ),
             ),
@@ -686,7 +690,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Se connecter',
+                        AppLocalizations.of(context).authSignIn,
                         style: tt.labelLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -703,6 +707,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   // -- Register link
 
   Widget _buildRegisterLink(TextTheme tt, bool isDark) {
+    final l = AppLocalizations.of(context);
     return TextButton(
       onPressed: () =>
           Navigator.of(context).pushReplacementNamed('/onboarding'),
@@ -713,9 +718,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             color: SmartSoleColors.textSecondaryDark,
           ),
           children: [
-            const TextSpan(text: "Pas encore de compte ? "),
+            TextSpan(text: l.authNoAccount),
             TextSpan(
-              text: "S'inscrire",
+              text: l.authRegister,
               style: const TextStyle(
                 color: SmartSoleColors.biTeal,
                 fontWeight: FontWeight.w700,
@@ -736,7 +741,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     return Column(
       children: [
         Text(
-          'Donnees protegees -- conformite RGPD',
+          AppLocalizations.of(context).authGdprFooter,
           style: TextStyle(fontSize: 11, color: subtleColor),
         ),
         const SizedBox(height: 6),
@@ -746,7 +751,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             Icon(Icons.shield_outlined, size: 12, color: subtleColor),
             const SizedBox(width: 4),
             Text(
-              'SmartSole 2026 - MVP v1.0',
+              AppLocalizations.of(context).authVersionFooter,
               style: TextStyle(fontSize: 11, color: subtleColor),
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
@@ -23,10 +24,10 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
   int _selectedMetric = 0;
   int _selectedDuration = 30;
 
-  static const List<String> _metricLabels = [
-    'Score Global',
-    'Score Posture',
-    'Pas',
+  List<String> _metricLabels(AppLocalizations l) => [
+    l.trendsGlobalScore,
+    l.trendsPostureScore,
+    l.trendsSteps,
   ];
 
   MetricInfo _metricInfoForIndex(int index) {
@@ -46,7 +47,9 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     final sessionsAsync = ref.watch(sessionsProvider);
+    final metricLabels = _metricLabels(l);
 
     return MeshGradientBackground(
       biState: BIState.navy,
@@ -55,12 +58,12 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           automaticallyImplyLeading: false,
-          title: Text('Tendances', style: textTheme.headlineSmall),
+          title: Text(l.trendsTitle, style: textTheme.headlineSmall),
           centerTitle: true,
         ),
         body: sessionsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator(color: SmartSoleColors.biNormal, strokeWidth: 2)),
-          error: (e, _) => Center(child: Text('Erreur: $e', style: textTheme.bodyMedium)),
+          error: (e, _) => Center(child: Text('${l.trendsError}$e', style: textTheme.bodyMedium)),
           data: (sessions) {
             if (sessions.isEmpty) {
               return Center(
@@ -69,9 +72,9 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                   children: [
                     Icon(Icons.timeline, size: 48, color: isDark ? Colors.white24 : Colors.black26),
                     const SizedBox(height: 16),
-                    Text('Aucune session enregistrée', style: textTheme.titleMedium),
+                    Text(l.trendsEmpty, style: textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    Text('Les tendances apparaîtront après vos premières sessions.', style: textTheme.bodySmall, textAlign: TextAlign.center),
+                    Text(l.trendsEmptyDesc, style: textTheme.bodySmall, textAlign: TextAlign.center),
                   ],
                 ),
               );
@@ -92,7 +95,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: List.generate(_metricLabels.length, (i) {
+                      children: List.generate(metricLabels.length, (i) {
                         final bool selected = _selectedMetric == i;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
@@ -111,7 +114,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                                 ),
                               ),
                               child: Text(
-                                _metricLabels[i],
+                                metricLabels[i],
                                 style: textTheme.labelLarge?.copyWith(
                                   color: selected ? SmartSoleColors.biNavy : isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight,
                                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -135,7 +138,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                           padding: const EdgeInsets.only(left: 4),
                           child: Row(
                             children: [
-                              Text(_metricLabels[_selectedMetric], style: textTheme.titleLarge),
+                              Text(metricLabels[_selectedMetric], style: textTheme.titleLarge),
                               const SizedBox(width: 8),
                               MetricInfoButton(metric: _metricInfoForIndex(_selectedMetric)),
                             ],
@@ -143,7 +146,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                         ),
                         Padding(
                           padding: const EdgeInsets.only(left: 4, top: 2),
-                          child: Text('${displaySessions.length} dernières sessions', style: textTheme.bodySmall),
+                          child: Text('${displaySessions.length} ${l.trendsLastSessions}', style: textTheme.bodySmall),
                         ),
                         const SizedBox(height: 20),
                         SizedBox(height: 220, child: _buildChart(displaySessions, isDark)),
@@ -157,7 +160,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                     children: [
                       Expanded(
                         child: _TrendKpi(
-                          label: 'Moyenne',
+                          label: l.trendsMean,
                           value: _avgValue(displaySessions).toStringAsFixed(1),
                           icon: Icons.analytics_outlined,
                           color: SmartSoleColors.biNavy,
@@ -166,7 +169,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _TrendKpi(
-                          label: 'Tendance',
+                          label: l.trendsTrend,
                           value: _trendArrow(displaySessions),
                           icon: Icons.trending_up,
                           color: _trendColor(displaySessions),
@@ -175,7 +178,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _TrendKpi(
-                          label: 'Sessions',
+                          label: l.trendsSessions,
                           value: '${displaySessions.length}',
                           icon: Icons.calendar_today_outlined,
                           color: SmartSoleColors.biTeal,
@@ -197,7 +200,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                             children: [
                               Icon(Icons.bar_chart_rounded, size: 18, color: SmartSoleColors.biTeal),
                               const SizedBox(width: 8),
-                              Text('Score vs Posture', style: textTheme.titleLarge),
+                              Text(l.trendsScoreVsPosture, style: textTheme.titleLarge),
                               const Spacer(),
                               DropdownButton<int>(
                                 value: _selectedDuration,
@@ -219,7 +222,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${displaySessions.length} sessions — comparaison score global / posture',
+                          '${displaySessions.length} ${l.trendsSessionsFmt}',
                           style: textTheme.bodySmall?.copyWith(
                             color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight,
                           ),
@@ -415,9 +418,9 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _LegendDot(color: SmartSoleColors.biNormal, label: 'Score Global', textColor: textColor),
+        _LegendDot(color: SmartSoleColors.biNormal, label: AppLocalizations.of(context).trendsGlobalScoreLegend, textColor: textColor),
         const SizedBox(width: 16),
-        _LegendDot(color: SmartSoleColors.biNavy, label: 'Posture', textColor: textColor),
+        _LegendDot(color: SmartSoleColors.biNavy, label: AppLocalizations.of(context).trendsPostureLegend, textColor: textColor),
       ],
     );
   }
@@ -437,7 +440,7 @@ class _HistoryTrendsScreenState extends ConsumerState<HistoryTrendsScreen> {
     final double firstHalf = data.take(half).reduce((a, b) => a + b) / half;
     final double secondHalf = data.skip(half).reduce((a, b) => a + b) / (data.length - half);
     final double diff = secondHalf - firstHalf;
-    if (diff.abs() < 2) return '-> Stable';
+    if (diff.abs() < 2) return AppLocalizations.of(context).trendsStable;
     return diff > 0 ? '^ +${diff.abs().toStringAsFixed(1)}' : 'v ${diff.toStringAsFixed(1)}';
   }
 

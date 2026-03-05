@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
@@ -19,6 +20,7 @@ class ProDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     final sessionsAsync = ref.watch(sessionsProvider);
 
     return MeshGradientBackground(
@@ -28,7 +30,7 @@ class ProDashboardScreen extends ConsumerWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text('Espace Professionnel', style: textTheme.headlineMedium),
+          title: Text(l.proTitle, style: textTheme.headlineMedium),
           centerTitle: true,
         ),
         body: SingleChildScrollView(
@@ -45,12 +47,12 @@ class ProDashboardScreen extends ConsumerWidget {
                       children: [
                         const Icon(Icons.medical_services, color: SmartSoleColors.biNavy),
                         const SizedBox(width: 8),
-                        Text('Outils de suivi', style: textTheme.titleLarge!),
+                        Text(l.proToolsTitle, style: textTheme.titleLarge!),
                       ],
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Retrouvez ici les sessions enregistrées et leurs analyses biomécaniques.',
+                      l.proToolsDesc,
                       style: textTheme.bodyMedium?.copyWith(
                         color: isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight,
                       ),
@@ -63,7 +65,7 @@ class ProDashboardScreen extends ConsumerWidget {
               // ── Stats summary
               sessionsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator(color: SmartSoleColors.biNavy, strokeWidth: 2)),
-                error: (e, _) => Text('Erreur: $e'),
+                error: (e, _) => Text('${l.trendsError}$e'),
                 data: (sessions) {
                   if (sessions.isEmpty) {
                     return GlassBentoCard(
@@ -73,9 +75,9 @@ class ProDashboardScreen extends ConsumerWidget {
                           children: [
                             Icon(Icons.folder_open, size: 40, color: isDark ? Colors.white24 : Colors.black26),
                             const SizedBox(height: 12),
-                            Text('Aucune session enregistrée', style: textTheme.titleMedium),
+                            Text(l.proNoSession, style: textTheme.titleMedium),
                             const SizedBox(height: 4),
-                            Text('Les sessions apparaîtront ici après enregistrement.', style: textTheme.bodySmall),
+                            Text(l.proNoSessionDesc, style: textTheme.bodySmall),
                           ],
                         ),
                       ),
@@ -93,16 +95,16 @@ class ProDashboardScreen extends ConsumerWidget {
                       // Summary KPIs
                       Row(
                         children: [
-                          Expanded(child: _ProKpi(label: 'Score moyen', value: '${avgScore.toStringAsFixed(0)}%', icon: Icons.analytics, color: SmartSoleColors.biNormal)),
+                          Expanded(child: _ProKpi(label: l.proAvgScore, value: '${avgScore.toStringAsFixed(0)}%', icon: Icons.analytics, color: SmartSoleColors.biNormal)),
                           const SizedBox(width: 10),
-                          Expanded(child: _ProKpi(label: 'Posture moy.', value: '${avgPosture.toStringAsFixed(0)}%', icon: Icons.accessibility_new, color: SmartSoleColors.biNavy)),
+                          Expanded(child: _ProKpi(label: l.proAvgPosture, value: '${avgPosture.toStringAsFixed(0)}%', icon: Icons.accessibility_new, color: SmartSoleColors.biNavy)),
                           const SizedBox(width: 10),
-                          Expanded(child: _ProKpi(label: 'Total pas', value: totalSteps >= 1000 ? '${(totalSteps / 1000).toStringAsFixed(1)}k' : '$totalSteps', icon: Icons.directions_walk, color: SmartSoleColors.biTeal)),
+                          Expanded(child: _ProKpi(label: l.proTotalSteps, value: totalSteps >= 1000 ? '${(totalSteps / 1000).toStringAsFixed(1)}k' : '$totalSteps', icon: Icons.directions_walk, color: SmartSoleColors.biTeal)),
                         ],
                       ),
                       const SizedBox(height: 24),
 
-                      Text('Sessions récentes', style: textTheme.headlineSmall!),
+                      Text(l.proRecentSessions, style: textTheme.headlineSmall!),
                       const SizedBox(height: 12),
 
                       // Recent sessions as "patient" cards
@@ -153,7 +155,7 @@ class ProDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${session.steps} pas  ·  ${session.distance}',
+                  '${session.steps} ${AppLocalizations.of(context).dashStepUnit}  ·  ${session.distance}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight,
                   ),
@@ -170,7 +172,7 @@ class ProDashboardScreen extends ConsumerWidget {
                 child: Text('${session.globalScore.toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scoreColor)),
               ),
               const SizedBox(height: 4),
-              Text('Posture: ${session.postureScore.toStringAsFixed(0)}%', style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              Text('${AppLocalizations.of(context).proPostureLabel}: ${session.postureScore.toStringAsFixed(0)}%', style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight,
               )),
             ],

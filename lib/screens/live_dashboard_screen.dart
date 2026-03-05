@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
@@ -73,8 +74,8 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
 
       // Check for posture warnings
       final session = ref.read(shoeSessionViewModelProvider);
-      if (session.badPosition && _hotspotPhrase == null) {
-        _showHotspotPhrase('Mauvaise posture detectee — corrigez votre position');
+      if (session.badPosition && _hotspotPhrase == null && mounted) {
+        _showHotspotPhrase(AppLocalizations.of(context).dashBadPosture);
       }
     });
   }
@@ -113,7 +114,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Session enregistree avec succes !'),
+          content: Text(AppLocalizations.of(context).dashSessionSaved),
           backgroundColor: SmartSoleColors.biSuccess,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -203,7 +204,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Carte de Pression', style: textTheme.titleLarge),
+                                Text(AppLocalizations.of(context).dashPressureMap, style: textTheme.titleLarge),
                                 if (_isSessionActive)
                                   Container(
                                     width: 8, height: 8,
@@ -213,7 +214,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _isSessionActive ? 'Analyse en temps reel' : 'Demarrez une session',
+                              _isSessionActive ? AppLocalizations.of(context).dashRealTimeAnalysis : AppLocalizations.of(context).dashStartSession,
                               style: textTheme.bodySmall,
                             ),
                             const SizedBox(height: 16),
@@ -258,7 +259,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                         children: [
                           Expanded(
                             child: _KpiCard(
-                              label: 'Cadence',
+                              label: AppLocalizations.of(context).dashCadenceLabel,
                               value: _isSessionActive ? session.cadence.toInt().toString() : '--',
                               unit: 'pas/min',
                               icon: Icons.speed,
@@ -269,7 +270,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _KpiCard(
-                              label: 'Vitesse',
+                              label: AppLocalizations.of(context).dashSpeed,
                               value: _isSessionActive ? speed.toStringAsFixed(1) : '--',
                               unit: 'km/h',
                               icon: Icons.directions_walk,
@@ -317,7 +318,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                                       children: [
                                         Icon(Icons.directions_run, size: 16, color: isDark ? Colors.white54 : Colors.black45),
                                         const SizedBox(width: 6),
-                                        Text('Segment', style: textTheme.titleSmall),
+                                        Text(AppLocalizations.of(context).dashSegment, style: textTheme.titleSmall),
                                         const Spacer(),
                                         const MetricInfoButton(metric: MetricCatalog.segment),
                                       ],
@@ -344,9 +345,9 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Score Global', style: textTheme.titleSmall),
+                                  Text(AppLocalizations.of(context).dashGlobalScore, style: textTheme.titleSmall),
                                   const SizedBox(height: 4),
-                                  Text('Posture: ${session.postureScore.toStringAsFixed(0)}%', style: textTheme.bodySmall),
+                                  Text('${AppLocalizations.of(context).dashPostureScoreLabel}: ${session.postureScore.toStringAsFixed(0)}%', style: textTheme.bodySmall),
                                 ],
                               ),
                             ),
@@ -407,7 +408,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                     Icon(Icons.bluetooth, size: 14, color: isConnected ? SmartSoleColors.biNormal : SmartSoleColors.biAlert),
                     const SizedBox(width: 4),
                     Text(
-                      isConnected ? 'Connecte' : (bleOn ? 'BT actif' : 'BT off'),
+                      isConnected ? AppLocalizations.of(context).dashConnected : (bleOn ? AppLocalizations.of(context).dashBtOn : AppLocalizations.of(context).dashBtOff),
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isConnected ? SmartSoleColors.biNormal : SmartSoleColors.biAlert),
                     ),
                   ],
@@ -436,7 +437,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
                 ),
               const SizedBox(width: 8),
               if (_isSessionActive)
-                Text('$totalSteps pas', style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text('$totalSteps ${AppLocalizations.of(context).dashStepUnit}', style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
             ],
           ),
         );
@@ -456,7 +457,7 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         icon: Icon(_isSessionActive ? Icons.stop_circle_outlined : Icons.play_circle_outline),
         label: Text(
-          _isSessionActive ? 'Arreter' : 'Demarrer',
+          _isSessionActive ? AppLocalizations.of(context).dashStop : AppLocalizations.of(context).dashStart,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),

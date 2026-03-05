@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 
@@ -212,8 +213,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             children: [
                               Text(
                                 _currentPage == _totalPages - 1
-                                    ? 'Creer mon compte'
-                                    : 'Suivant',
+                                    ? AppLocalizations.of(context).onboardingCreateAccount
+                                    : AppLocalizations.of(context).onboardingNext,
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
@@ -242,7 +243,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Deja un compte ? ',
+                        AppLocalizations.of(context).onboardingAlreadyAccount,
                         style: TextStyle(
                           fontSize: 14,
                           color: SmartSoleColors.textSecondaryDark.withValues(
@@ -258,8 +259,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'Se connecter',
+                        child: Text(
+                          AppLocalizations.of(context).onboardingSignIn,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -324,7 +325,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
         // Subtitle
         Text(
-          'La biomecanique dans votre quotidien',
+          AppLocalizations.of(context).onboardingBiomechanics,
           style: textTheme.titleMedium?.copyWith(
             color: SmartSoleColors.biTeal,
             fontWeight: FontWeight.w600,
@@ -335,8 +336,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
         // Description
         Text(
-          'Une chaussure connectee qui rend visible la pression et la marche. '
-          'Comprendre, prevenir, agir.',
+          AppLocalizations.of(context).onboardingBiomechanicsDesc,
           style: textTheme.bodyLarge?.copyWith(
             color: SmartSoleColors.textSecondaryDark,
             height: 1.55,
@@ -374,7 +374,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
         // Title
         Text(
-          'Marchez en toute conscience',
+          AppLocalizations.of(context).onboardingWalkConscious,
           style: textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.w800,
             letterSpacing: -0.8,
@@ -385,7 +385,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
         // Subtitle
         Text(
-          'Des donnees claires et actionnables',
+          AppLocalizations.of(context).onboardingWalkConsciousSub,
           style: textTheme.titleMedium?.copyWith(
             color: SmartSoleColors.biTeal,
             fontWeight: FontWeight.w600,
@@ -396,8 +396,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
         // Description
         Text(
-          "Visualisez vos appuis, identifiez vos hotspots et suivez l'evolution "
-          'de votre demarche.',
+          AppLocalizations.of(context).onboardingWalkConsciousDesc,
           style: textTheme.bodyLarge?.copyWith(
             color: SmartSoleColors.textSecondaryDark,
             height: 1.55,
@@ -424,7 +423,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
           // Title
           Text(
-            'Quel est votre profil ?',
+            AppLocalizations.of(context).onboardingSelectProfile,
             style: textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: -0.8,
@@ -432,7 +431,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            'Choisissez le mode adapte a vos besoins.',
+            AppLocalizations.of(context).onboardingSelectProfileSub,
             style: textTheme.bodyMedium?.copyWith(
               color: SmartSoleColors.textSecondaryDark,
             ),
@@ -442,8 +441,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           // Profile cards
           _ProfileCard(
             type: ProfileType.urban,
-            title: 'Actif Urbain',
-            subtitle: 'Running, marche quotidienne, prevention',
+            title: AppLocalizations.of(context).onboardingUrbanTitle,
+            subtitle: AppLocalizations.of(context).onboardingUrbanSub,
             icon: Icons.directions_walk,
             accent: SmartSoleColors.biNormal,
             isSelected: _selectedProfile == ProfileType.urban,
@@ -452,8 +451,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const SizedBox(height: 12),
           _ProfileCard(
             type: ProfileType.kids,
-            title: 'Parent -- Suivi Enfant',
-            subtitle: 'Developpement de la marche, IMM, pediatrique',
+            title: AppLocalizations.of(context).onboardingKidsTitle,
+            subtitle: AppLocalizations.of(context).onboardingKidsSub,
             icon: Icons.child_care,
             accent: SmartSoleColors.biTeal,
             isSelected: _selectedProfile == ProfileType.kids,
@@ -462,8 +461,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const SizedBox(height: 12),
           _ProfileCard(
             type: ProfileType.pro,
-            title: 'Professionnel Sante',
-            subtitle: 'Diagnostic, rapport PDF, suivi patient J0->J30',
+            title: AppLocalizations.of(context).onboardingProTitle,
+            subtitle: AppLocalizations.of(context).onboardingProSub,
             icon: Icons.medical_services_outlined,
             accent: SmartSoleColors.biNavy,
             isSelected: _selectedProfile == ProfileType.pro,

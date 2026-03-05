@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
@@ -51,18 +52,19 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
     final BIState scoreState = displayScore >= 70 ? BIState.normal : displayScore >= 50 ? BIState.warning : BIState.alert;
 
     // Generate narratives from real data
+    final l = AppLocalizations.of(context);
     final List<String> narratives = [];
     if (hotspotScore > 60) {
-      narratives.add('Surcharge detectee sur l\'avant-pied — pensez a ajuster votre foulée.');
+      narratives.add(l.summaryNarrativeForefoot);
     }
     if (rollScore < 50) {
-      narratives.add('Le déroulé du pied est insuffisant — travaillez la souplesse de cheville.');
+      narratives.add(l.summaryNarrativeRoll);
     }
     if (asymmetryPct > 20) {
-      narratives.add('Asymétrie ${asymmetryPct.toInt()}% détectée entre pied gauche et droit.');
+      narratives.add(l.summaryNarrativeAsymmetryFmt.replaceAll('%d', '${asymmetryPct.toInt()}'));
     }
     if (narratives.isEmpty) {
-      narratives.add('Belle session ! Votre marche est équilibrée et votre posture est bonne.');
+      narratives.add(l.summaryNarrativeGood);
     }
 
     return MeshGradientBackground(
@@ -75,7 +77,7 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
             icon: const Icon(Icons.arrow_back_ios_new, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Text('Résumé de session', style: textTheme.headlineSmall),
+          title: Text(l.summaryTitle, style: textTheme.headlineSmall),
           centerTitle: true,
         ),
         body: SingleChildScrollView(
@@ -88,26 +90,26 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
                 displayScore.toString(),
                 style: textTheme.displayLarge?.copyWith(color: SmartSoleColors.colorForState(scoreState), fontSize: 96),
               ),
-              Text('Score Global', style: textTheme.titleMedium?.copyWith(color: SmartSoleColors.colorForState(scoreState))),
+              Text(l.summaryGlobalScore, style: textTheme.titleMedium?.copyWith(color: SmartSoleColors.colorForState(scoreState))),
               const SizedBox(height: 6),
               Text(_scoreLabel(displayScore), style: textTheme.bodySmall),
               const SizedBox(height: 8),
               // Session stats
-              Text('$steps pas  ·  ${(distance / 1000).toStringAsFixed(2)} km  ·  ${cadence.toStringAsFixed(0)} pas/min', style: textTheme.bodySmall),
+              Text('$steps ${l.dashStepUnit}  ·  ${(distance / 1000).toStringAsFixed(2)} km  ·  ${cadence.toStringAsFixed(0)} ${l.dashStepsPerMin}', style: textTheme.bodySmall),
               const SizedBox(height: 24),
 
               // ── 4 KPI Blocks
               Row(
                 children: [
-                  Expanded(child: _SummaryKpi(label: 'Hotspot', value: '${hotspotScore.toInt()}', unit: '/100', icon: Icons.local_fire_department, biState: hotspotScore > 60 ? BIState.alert : BIState.normal)),
+                  Expanded(child: _SummaryKpi(label: l.summaryHotspot, value: '${hotspotScore.toInt()}', unit: '/100', icon: Icons.local_fire_department, biState: hotspotScore > 60 ? BIState.alert : BIState.normal)),
                   const SizedBox(width: 10),
-                  Expanded(child: _SummaryKpi(label: 'Déroulé', value: '${rollScore.toInt()}', unit: '/100', icon: Icons.trending_up, biState: rollScore < 50 ? BIState.alert : rollScore < 70 ? BIState.warning : BIState.normal)),
+                  Expanded(child: _SummaryKpi(label: l.summaryRoll, value: '${rollScore.toInt()}', unit: '/100', icon: Icons.trending_up, biState: rollScore < 50 ? BIState.alert : rollScore < 70 ? BIState.warning : BIState.normal)),
                 ],
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(child: _SummaryKpi(label: 'Asymétrie', value: '${asymmetryPct.toInt()}%', unit: 'G/D', icon: Icons.compare_arrows, biState: asymmetryPct > 20 ? BIState.alert : asymmetryPct > 10 ? BIState.warning : BIState.normal)),
+                  Expanded(child: _SummaryKpi(label: l.summaryAsymmetry, value: '${asymmetryPct.toInt()}%', unit: 'G/D', icon: Icons.compare_arrows, biState: asymmetryPct > 20 ? BIState.alert : asymmetryPct > 10 ? BIState.warning : BIState.normal)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: GlassBentoCard(
@@ -140,9 +142,9 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Douleur post-session', style: textTheme.titleLarge),
+                    Text(l.summaryPainTitle, style: textTheme.titleLarge),
                     const SizedBox(height: 4),
-                    Text('Comment vous sentez-vous ?', style: textTheme.bodySmall),
+                    Text(l.summaryPainSubtitle, style: textTheme.bodySmall),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -174,7 +176,7 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
                     child: OutlinedButton.icon(
                       onPressed: () {},
                       icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                      label: const Text('Exporter PDF'),
+                      label: Text(l.summaryExportPdf),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isDark ? Colors.white70 : Colors.black54,
                         side: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
@@ -188,7 +190,7 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {},
                       icon: const Icon(Icons.share_outlined, size: 18),
-                      label: const Text('Partager'),
+                      label: Text(l.summaryShare),
                     ),
                   ),
                 ],
@@ -201,10 +203,11 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
   }
 
   String _scoreLabel(int score) {
-    if (score >= 80) return 'Excellent — marche équilibrée';
-    if (score >= 60) return 'Correct — quelques points à surveiller';
-    if (score >= 40) return 'Vigilance — déséquilibre détecté';
-    return 'Alerte — consultation recommandée';
+    final l = AppLocalizations.of(context);
+    if (score >= 80) return l.summaryExcellent;
+    if (score >= 60) return l.summaryCorrect;
+    if (score >= 40) return l.summaryVigilance;
+    return l.summaryAlert;
   }
 
   Color _painColor(double score) {

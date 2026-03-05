@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
@@ -25,9 +26,10 @@ class IMMReportScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final TextTheme textTheme = Theme.of(context).textTheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
 
     // Get child name from auth profile or default
-    final childName = auth.userProfile?.childProfile?.nickname ?? 'Mon enfant';
+    final childName = auth.userProfile?.childProfile?.nickname ?? l.navChildTracking;
     final childAgeMonths = auth.userProfile?.childProfile?.ageMonths ?? 48;
 
     return MeshGradientBackground(
@@ -37,7 +39,7 @@ class IMMReportScreen extends ConsumerWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           automaticallyImplyLeading: false,
-          title: Text('Rapport IMM', style: textTheme.headlineSmall),
+          title: Text(l.immTitle, style: textTheme.headlineSmall),
           centerTitle: true,
           actions: [
             IconButton(
@@ -48,7 +50,7 @@ class IMMReportScreen extends ConsumerWidget {
         ),
         body: sessionsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator(color: SmartSoleColors.biTeal, strokeWidth: 2)),
-          error: (e, _) => Center(child: Text('Erreur: $e', style: textTheme.bodyMedium)),
+          error: (e, _) => Center(child: Text('${l.trendsError}$e', style: textTheme.bodyMedium)),
           data: (sessions) {
             if (sessions.isEmpty) {
               return Center(
@@ -57,9 +59,9 @@ class IMMReportScreen extends ConsumerWidget {
                   children: [
                     Icon(Icons.child_care, size: 48, color: isDark ? Colors.white24 : Colors.black26),
                     const SizedBox(height: 16),
-                    Text('Aucune session enregistrée', style: textTheme.titleMedium),
+                    Text(l.immNoSession, style: textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    Text('Le rapport IMM sera généré après les premières sessions.', style: textTheme.bodySmall, textAlign: TextAlign.center),
+                    Text(l.immNoSessionDesc, style: textTheme.bodySmall, textAlign: TextAlign.center),
                   ],
                 ),
               );
@@ -101,7 +103,7 @@ class IMMReportScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(childName, style: textTheme.titleLarge),
-                            Text('${childAgeMonths ~/ 12} ans ${childAgeMonths % 12} mois', style: textTheme.bodySmall),
+                            Text('${childAgeMonths ~/ 12} ${l.locale.languageCode == 'fr' ? 'ans' : 'yrs'} ${childAgeMonths % 12} ${l.locale.languageCode == 'fr' ? 'mois' : 'mo'}', style: textTheme.bodySmall),
                           ],
                         ),
                         const Spacer(),
@@ -117,7 +119,7 @@ class IMMReportScreen extends ConsumerWidget {
                               children: [
                                 const Icon(Icons.battery_3_bar, size: 12, color: SmartSoleColors.biWarning),
                                 const SizedBox(width: 4),
-                                Text('Fatigue', style: textTheme.labelSmall?.copyWith(color: SmartSoleColors.biWarning, fontWeight: FontWeight.w700)),
+                                Text(l.immFatigue, style: textTheme.labelSmall?.copyWith(color: SmartSoleColors.biWarning, fontWeight: FontWeight.w700)),
                               ],
                             ),
                           ),
@@ -134,11 +136,11 @@ class IMMReportScreen extends ConsumerWidget {
                       children: [
                         Text(immScore.toStringAsFixed(0), style: textTheme.displayLarge?.copyWith(color: SmartSoleColors.colorForState(immState))),
                         const SizedBox(height: 4),
-                        Text('Score de Maturité de Marche', style: textTheme.titleMedium?.copyWith(color: SmartSoleColors.colorForState(immState))),
+                        Text(l.immMaturityScore, style: textTheme.titleMedium?.copyWith(color: SmartSoleColors.colorForState(immState))),
                         const SizedBox(height: 16),
                         _PercentileBar(percentile: immPercentile),
                         const SizedBox(height: 8),
-                        Text('Percentile ${immPercentile.toInt()}e — ${_percentileLabel(immPercentile)}', style: textTheme.bodySmall),
+                        Text('${l.immPercentileFmt} ${immPercentile.toInt()}e — ${_percentileLabel(immPercentile, l)}', style: textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -147,17 +149,17 @@ class IMMReportScreen extends ConsumerWidget {
                   // ── Sous-scores
                   Row(
                     children: [
-                      Expanded(child: _SubScoreCard(label: 'Cadence', value: '${cadenceEstimate.toInt()}', unit: 'pas/min', icon: Icons.speed, norm: 'Norme : ${_cadenceNormForAge(childAgeMonths).toInt()} pas/min')),
+                      Expanded(child: _SubScoreCard(label: l.immCadence, value: '${cadenceEstimate.toInt()}', unit: l.dashStepsPerMin, icon: Icons.speed, norm: l.immNormCadenceFmt.replaceAll('%d', '${_cadenceNormForAge(childAgeMonths).toInt()}'))),
                       const SizedBox(width: 10),
-                      Expanded(child: _SubScoreCard(label: 'Asymétrie', value: '${asymmetryEstimate.toInt()}%', unit: '', icon: Icons.compare_arrows, norm: 'Norme : < 15%')),
+                      Expanded(child: _SubScoreCard(label: l.immAsymmetry, value: '${asymmetryEstimate.toInt()}%', unit: '', icon: Icons.compare_arrows, norm: l.immNormAsymmetry)),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Expanded(child: _SubScoreCard(label: 'Double appui', value: '${doubleSupportPct.toInt()}%', unit: '', icon: Icons.sync_alt, norm: 'Norme : 20-30%')),
+                      Expanded(child: _SubScoreCard(label: l.immDoubleSupport, value: '${doubleSupportPct.toInt()}%', unit: '', icon: Icons.sync_alt, norm: l.immNormDoubleSupport)),
                       const SizedBox(width: 10),
-                      Expanded(child: _SubScoreCard(label: 'Variabilité', value: '${variabilityCv.toInt()}%', unit: 'CV', icon: Icons.auto_graph, norm: 'Norme : < 10%')),
+                      Expanded(child: _SubScoreCard(label: l.immVariability, value: '${variabilityCv.toInt()}%', unit: 'CV', icon: Icons.auto_graph, norm: l.immNormVariability)),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -168,8 +170,8 @@ class IMMReportScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(padding: const EdgeInsets.only(left: 4), child: Text('Évolution IMM', style: textTheme.titleLarge)),
-                        Padding(padding: const EdgeInsets.only(left: 4, top: 2), child: Text('${immHistory.length} sessions', style: textTheme.bodySmall)),
+                        Padding(padding: const EdgeInsets.only(left: 4), child: Text(l.immEvolution, style: textTheme.titleLarge)),
+                        Padding(padding: const EdgeInsets.only(left: 4, top: 2), child: Text('${immHistory.length} ${l.immSessions}', style: textTheme.bodySmall)),
                         const SizedBox(height: 20),
                         SizedBox(height: 180, child: _buildIMMChart(immHistory, isDark)),
                       ],
@@ -180,7 +182,7 @@ class IMMReportScreen extends ConsumerWidget {
                   // ── Coaching enfant
                   NarrativeCard(
                     accentColor: SmartSoleColors.biTeal,
-                    narratives: _childNarratives(immScore, immPercentile, asymmetryEstimate.toDouble(), fatigueDetected),
+                    narratives: _childNarratives(l, immScore, immPercentile, asymmetryEstimate.toDouble(), fatigueDetected),
                   ),
                 ],
               ),
@@ -253,26 +255,26 @@ class IMMReportScreen extends ConsumerWidget {
     );
   }
 
-  String _percentileLabel(double percentile) {
-    if (percentile >= 75) return 'Au-dessus de la moyenne';
-    if (percentile >= 50) return 'Dans la moyenne';
-    if (percentile >= 25) return 'Légèrement en dessous';
-    return 'En dessous de la moyenne — suivi conseillé';
+  String _percentileLabel(double percentile, AppLocalizations l) {
+    if (percentile >= 75) return l.immAboveAvg;
+    if (percentile >= 50) return l.immAverage;
+    if (percentile >= 25) return l.immBelowAvg;
+    return l.immFarBelowAvg;
   }
 
-  List<String> _childNarratives(double immScore, double percentile, double asymmetry, bool fatigueDetected) {
+  List<String> _childNarratives(AppLocalizations l, double immScore, double percentile, double asymmetry, bool fatigueDetected) {
     final List<String> phrases = [];
     if (percentile < 25) {
-      phrases.add('Le score de marche est en dessous de la moyenne pour son âge. Un bilan podiatrique pourrait confirmer un retard de maturation.');
+      phrases.add(l.immNarrativeLow);
     }
     if (fatigueDetected) {
-      phrases.add('La fatigue en fin de session est détectée — la variabilité augmente. Réduire la durée de marche pourrait aider.');
+      phrases.add(l.immNarrativeFatigue);
     }
     if (asymmetry > 15) {
-      phrases.add('L\'asymétrie gauche/droite est au-dessus de la norme. À surveiller sur les prochaines sessions.');
+      phrases.add(l.immNarrativeAsymmetry);
     }
     if (phrases.isEmpty) {
-      phrases.add('La marche progresse bien. Continuez les sessions régulières.');
+      phrases.add(l.immNarrativeGood);
     }
     return phrases.take(2).toList();
   }
