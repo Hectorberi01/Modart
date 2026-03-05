@@ -2,21 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modar/l10n/app_localizations.dart';
 import 'package:modar/providers.dart';
+import 'package:modar/theme/app_theme.dart';
 import '../models/session.dart';
-
-const _kPrimary = Color(0xFF1C1F2E);
-const _kAccent = Color(0xFF2F80ED);
-const _kSuccess = Color(0xFF27AE60);
-const _kBg = Color(0xFFF7F8FA);
-const _kTextSecondary = Color(0xFF6B7280);
-
-List<BoxShadow> _cardShadow() => [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.06),
-        blurRadius: 20,
-        offset: const Offset(0, 4),
-      ),
-    ];
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -25,53 +12,53 @@ class HistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final sessionsAsync = ref.watch(sessionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? SmartSoleColors.darkBg : SmartSoleColors.lightBg;
+    final cardBg = isDark ? SmartSoleColors.darkCard : SmartSoleColors.lightSurface;
+    final textPrimary = isDark ? SmartSoleColors.textPrimaryDark : SmartSoleColors.textPrimaryLight;
+    final textSecondary = isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight;
+    final dividerColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6);
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: _kBg,
-        title: Text(
-          l.historyTitle,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
-        ),
+        backgroundColor: bgColor,
+        title: Text(l.historyTitle, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimary)),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: _cardShadow(),
+              border: isDark ? Border.all(color: SmartSoleColors.glassBorderDark, width: 0.5) : null,
+              boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 4))],
             ),
             child: IconButton(
               onPressed: () => ref.invalidate(sessionsProvider),
-              icon: const Icon(Icons.refresh_rounded, size: 20, color: _kPrimary),
+              icon: Icon(Icons.refresh_rounded, size: 20, color: textPrimary),
             ),
           ),
         ],
       ),
       body: sessionsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2),
-        ),
-        error: (e, _) => Center(
-          child: Text('${l.historyError}$e', style: const TextStyle(color: _kTextSecondary)),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator(color: SmartSoleColors.biNormal, strokeWidth: 2)),
+        error: (e, _) => Center(child: Text('${l.historyError}$e', style: TextStyle(color: textSecondary))),
         data: (sessions) => CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: _SummaryCard(sessions: sessions),
+                child: _SummaryCard(sessions: sessions, cardBg: cardBg, textPrimary: textPrimary, textSecondary: textSecondary, isDark: isDark),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
             if (sessions.isEmpty)
-              const SliverFillRemaining(child: _EmptyState())
+              SliverFillRemaining(child: _EmptyState(cardBg: cardBg, textPrimary: textPrimary, textSecondary: textSecondary, isDark: isDark))
             else
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                  child: _SessionList(sessions: sessions),
+                  child: _SessionList(sessions: sessions, cardBg: cardBg, textPrimary: textPrimary, textSecondary: textSecondary, dividerColor: dividerColor, isDark: isDark),
                 ),
               ),
           ],
@@ -82,8 +69,10 @@ class HistoryScreen extends ConsumerWidget {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.sessions});
+  const _SummaryCard({required this.sessions, required this.cardBg, required this.textPrimary, required this.textSecondary, required this.isDark});
   final List<Session> sessions;
+  final Color cardBg, textPrimary, textSecondary;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -99,40 +88,18 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow(),
+        border: isDark ? Border.all(color: SmartSoleColors.glassBorderDark, width: 0.5) : null,
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
-          Expanded(
-            child: _SummaryStat(
-              icon: Icons.directions_walk_rounded,
-              value: '${sessions.length}',
-              label: l.historySessions,
-              color: _kAccent,
-            ),
-          ),
-          Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
-          Expanded(
-            child: _SummaryStat(
-              icon: Icons.route_rounded,
-              value: totalDistanceKm.toStringAsFixed(1),
-              label: l.historyKmTotal,
-              color: _kSuccess,
-            ),
-          ),
-          Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
-          Expanded(
-            child: _SummaryStat(
-              icon: Icons.directions_walk_rounded,
-              value: totalSteps >= 1000
-                  ? '${(totalSteps / 1000).toStringAsFixed(1)}k'
-                  : '$totalSteps',
-              label: l.historyStepsTotal,
-              color: const Color(0xFFF59E0B),
-            ),
-          ),
+          Expanded(child: _SummaryStat(icon: Icons.directions_walk_rounded, value: '${sessions.length}', label: l.historySessions, color: SmartSoleColors.biNavy, textPrimary: textPrimary, textSecondary: textSecondary)),
+          Container(width: 1, height: 40, color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB)),
+          Expanded(child: _SummaryStat(icon: Icons.route_rounded, value: totalDistanceKm.toStringAsFixed(1), label: l.historyKmTotal, color: SmartSoleColors.biSuccess, textPrimary: textPrimary, textSecondary: textSecondary)),
+          Container(width: 1, height: 40, color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB)),
+          Expanded(child: _SummaryStat(icon: Icons.directions_walk_rounded, value: totalSteps >= 1000 ? '${(totalSteps / 1000).toStringAsFixed(1)}k' : '$totalSteps', label: l.historyStepsTotal, color: SmartSoleColors.biAlert, textPrimary: textPrimary, textSecondary: textSecondary)),
         ],
       ),
     );
@@ -140,17 +107,10 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _SummaryStat extends StatelessWidget {
-  const _SummaryStat({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
+  const _SummaryStat({required this.icon, required this.value, required this.label, required this.color, required this.textPrimary, required this.textSecondary});
   final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
+  final String value, label;
+  final Color color, textPrimary, textSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -158,35 +118,34 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: color),
         const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
-        ),
+        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimary)),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
+        Text(label, style: TextStyle(fontSize: 11, color: textSecondary)),
       ],
     );
   }
 }
 
 class _SessionList extends StatelessWidget {
-  const _SessionList({required this.sessions});
+  const _SessionList({required this.sessions, required this.cardBg, required this.textPrimary, required this.textSecondary, required this.dividerColor, required this.isDark});
   final List<Session> sessions;
+  final Color cardBg, textPrimary, textSecondary, dividerColor;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow(),
+        border: isDark ? Border.all(color: SmartSoleColors.glassBorderDark, width: 0.5) : null,
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           for (int i = 0; i < sessions.length; i++) ...[
-            _SessionRow(session: sessions[i]),
-            if (i < sessions.length - 1)
-              const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFF3F4F6)),
+            _SessionRow(session: sessions[i], textPrimary: textPrimary, textSecondary: textSecondary),
+            if (i < sessions.length - 1) Divider(height: 1, indent: 72, endIndent: 16, color: dividerColor),
           ],
         ],
       ),
@@ -195,12 +154,13 @@ class _SessionList extends StatelessWidget {
 }
 
 class _SessionRow extends StatelessWidget {
-  const _SessionRow({required this.session});
+  const _SessionRow({required this.session, required this.textPrimary, required this.textSecondary});
   final Session session;
+  final Color textPrimary, textSecondary;
 
   Color get _scoreColor {
-    if (session.globalScore >= 70) return _kSuccess;
-    if (session.globalScore >= 40) return const Color(0xFFF59E0B);
+    if (session.globalScore >= 70) return SmartSoleColors.biSuccess;
+    if (session.globalScore >= 40) return SmartSoleColors.biAlert;
     return const Color(0xFFEB5757);
   }
 
@@ -211,33 +171,20 @@ class _SessionRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _kAccent.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.directions_walk_rounded, color: _kAccent, size: 22),
+            width: 44, height: 44,
+            decoration: BoxDecoration(color: SmartSoleColors.biNavy.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(14)),
+            child: const Icon(Icons.directions_walk_rounded, color: SmartSoleColors.biNavy, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  session.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _kPrimary),
-                ),
+                Text(session.title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textPrimary)),
                 const SizedBox(height: 3),
-                Text(
-                  '${session.date}  ·  ${session.time}  ·  ${session.duration}',
-                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
-                ),
+                Text('${session.date}  ·  ${session.time}  ·  ${session.duration}', style: TextStyle(fontSize: 12, color: textSecondary)),
                 const SizedBox(height: 4),
-                Text(
-                  '${session.steps} pas  ·  ${session.distance}',
-                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
-                ),
+                Text('${session.steps} pas  ·  ${session.distance}', style: TextStyle(fontSize: 12, color: textSecondary)),
               ],
             ),
           ),
@@ -247,24 +194,15 @@ class _SessionRow extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _scoreColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${session.globalScore.toStringAsFixed(0)}%',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _scoreColor),
-                ),
+                decoration: BoxDecoration(color: _scoreColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('${session.globalScore.toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _scoreColor)),
               ),
               const SizedBox(height: 4),
-              Text(
-                session.avgSpeed,
-                style: const TextStyle(fontSize: 11, color: _kTextSecondary),
-              ),
+              Text(session.avgSpeed, style: TextStyle(fontSize: 11, color: textSecondary)),
             ],
           ),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFD1D5DB)),
+          Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
         ],
       ),
     );
@@ -272,7 +210,9 @@ class _SessionRow extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.cardBg, required this.textPrimary, required this.textSecondary, required this.isDark});
+  final Color cardBg, textPrimary, textSecondary;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -282,26 +222,18 @@ class _EmptyState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 72, height: 72,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(22),
-              boxShadow: _cardShadow(),
+              border: isDark ? Border.all(color: SmartSoleColors.glassBorderDark, width: 0.5) : null,
             ),
-            child: const Icon(Icons.history_rounded, size: 36, color: Color(0xFFD1D5DB)),
+            child: Icon(Icons.history_rounded, size: 36, color: textSecondary),
           ),
           const SizedBox(height: 20),
-          Text(
-            l.historyNoSession,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _kPrimary),
-          ),
+          Text(l.historyNoSession, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: textPrimary)),
           const SizedBox(height: 6),
-          Text(
-            l.historyNoSessionDesc,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: _kTextSecondary),
-          ),
+          Text(l.historyNoSessionDesc, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: textSecondary)),
         ],
       ),
     );

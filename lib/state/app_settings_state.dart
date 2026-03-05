@@ -5,7 +5,7 @@ class AppSettingsState {
   final Locale locale;
 
   const AppSettingsState({
-    this.themeMode = ThemeMode.light,
+    this.themeMode = ThemeMode.dark,
     this.locale = const Locale('fr'),
   });
 

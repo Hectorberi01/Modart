@@ -1,29 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'app_theme.dart';
 
 final ThemeData lightTheme = ThemeData(
   useMaterial3: true,
   brightness: Brightness.light,
-  scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-  cardColor: Colors.white,
+  scaffoldBackgroundColor: SmartSoleColors.lightBg,
+  cardColor: SmartSoleColors.lightSurface,
   colorScheme: const ColorScheme.light(
-    primary: Color(0xFF1C1F2E),
+    primary: SmartSoleColors.biNormal,
     onPrimary: Colors.white,
-    secondary: Color(0xFF2F80ED),
-    surface: Colors.white,
-    onSurface: Color(0xFF111827),
-    outline: Color(0xFFE5E7EB),
+    secondary: SmartSoleColors.biTeal,
+    tertiary: SmartSoleColors.biNavy,
+    surface: SmartSoleColors.lightSurface,
+    onSurface: SmartSoleColors.textPrimaryLight,
+    error: SmartSoleColors.biAlert,
+    outline: Color(0xFFE2E8F0),
   ),
-  textTheme: GoogleFonts.outfitTextTheme(
-    ThemeData.light().textTheme,
-  ).apply(
-    bodyColor: const Color(0xFF111827),
-    displayColor: const Color(0xFF111827),
-  ),
+  textTheme: SmartSoleTheme.textTheme(Brightness.light),
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFFF7F8FA),
+    backgroundColor: Colors.transparent,
     surfaceTintColor: Colors.transparent,
     elevation: 0,
     scrolledUnderElevation: 0,
+    centerTitle: true,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: SmartSoleColors.biNormal,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
+      ),
+      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.2),
+    ),
+  ),
+  cardTheme: CardThemeData(
+    color: SmartSoleColors.lightSurface,
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(SmartSoleDesign.borderRadius),
+    ),
   ),
 );

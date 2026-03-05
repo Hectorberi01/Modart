@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
-const kDashPrimary = Color(0xFF1C1F2E);
-const kDashAccent  = Color(0xFF2F80ED);
-const kDashSuccess = Color(0xFF27AE60);
-const kDashTextSec = Color(0xFF6B7280);
-const kDashBg      = Color(0xFFF7F8FA);
+const kDashPrimary = SmartSoleColors.biNormal;
+const kDashAccent  = SmartSoleColors.biNavy;
+const kDashSuccess = SmartSoleColors.biSuccess;
+const kDashTextSec = SmartSoleColors.textSecondaryDark;
+const kDashBg      = SmartSoleColors.darkBg;
 
 List<BoxShadow> cardShadow() => [
       BoxShadow(
