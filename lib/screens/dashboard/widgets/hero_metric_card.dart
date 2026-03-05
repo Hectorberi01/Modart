@@ -18,11 +18,12 @@ class HeroMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: cardShadow(),
       ),
@@ -37,7 +38,9 @@ class HeroMetricCard extends StatelessWidget {
                     Icon(icon, size: 14, color: color),
                     const SizedBox(width: 6),
                     Text(label,
-                        style: const TextStyle(color: kDashTextSec, fontSize: 13)),
+                        style: TextStyle(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -46,10 +49,10 @@ class HeroMetricCard extends StatelessWidget {
                   children: [
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: kDashPrimary,
+                        color: theme.colorScheme.onSurface,
                         height: 1,
                         letterSpacing: -1.5,
                       ),
@@ -57,8 +60,10 @@ class HeroMetricCard extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8, left: 6),
                       child: Text(unit,
-                          style: const TextStyle(
-                              color: kDashTextSec, fontSize: 18, fontWeight: FontWeight.w400)),
+                          style: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w400)),
                     ),
                   ],
                 ),

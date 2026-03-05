@@ -92,25 +92,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final distanceUnit = session.distance >= 1000 ? 'km' : 'm';
 
     return Scaffold(
-      backgroundColor: kDashBg,
       appBar: AppBar(
-        backgroundColor: kDashBg,
         titleSpacing: 20,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               DateFormat('EEEE d MMMM', locale).format(DateTime.now()),
-              style: const TextStyle(
-                color: kDashTextSec,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
             ),
             Text(
               l.dashTitle,
-              style: const TextStyle(
-                color: kDashPrimary,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),

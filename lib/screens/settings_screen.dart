@@ -4,12 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modar/l10n/app_localizations.dart';
 import 'package:modar/providers.dart';
 
-const _kPrimary = Color(0xFF1C1F2E);
 const _kAccent = Color(0xFF2F80ED);
 const _kSuccess = Color(0xFF27AE60);
 const _kDanger = Color(0xFFEB5757);
-const _kBg = Color(0xFFF7F8FA);
-const _kTextSecondary = Color(0xFF6B7280);
 
 List<BoxShadow> _cardShadow() => [
   BoxShadow(
@@ -36,18 +33,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l = AppLocalizations.of(context);
     final bluetoothService = ref.watch(bluetoothServiceProvider);
     final settings = ref.watch(appSettingsProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: _kBg,
         centerTitle: true,
         title: Text(
           l.settingsTitle,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: _kPrimary,
           ),
         ),
       ),
@@ -69,8 +64,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         : Icons.bluetooth_disabled_rounded,
                     iconBg: isOn
                         ? _kSuccess.withValues(alpha: 0.12)
-                        : Colors.grey.withValues(alpha: 0.10),
-                    iconColor: isOn ? _kSuccess : _kTextSecondary,
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                    iconColor: isOn ? _kSuccess : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     title: l.settingsBtSection,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -79,7 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           isOn ? l.settingsBtEnabled : l.settingsBtDisabled,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isOn ? _kSuccess : _kTextSecondary,
+                            color: isOn ? _kSuccess : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -89,7 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           height: 8,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isOn ? _kSuccess : Colors.grey.shade400,
+                            color: isOn ? _kSuccess : theme.colorScheme.onSurface.withValues(alpha: 0.3),
                           ),
                         ),
                       ],
@@ -97,21 +92,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   );
                 },
               ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
+              Divider(height: 1, indent: 56, color: theme.colorScheme.outline),
               _SettingsRow(
                 icon: Icons.devices_rounded,
                 iconBg: _kAccent.withValues(alpha: 0.10),
                 iconColor: _kAccent,
                 title: l.settingsManageDevices,
                 subtitle: l.settingsManageDevicesSub,
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFFD1D5DB),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 20,
                 ),
                 onTap: widget.onManageBluetooth,
               ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
+              Divider(height: 1, indent: 56, color: theme.colorScheme.outline),
               _SettingsRow(
                 icon: Icons.wifi_tethering_rounded,
                 iconBg: const Color(0xFFF59E0B).withValues(alpha: 0.10),
@@ -143,7 +138,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
+              Divider(height: 1, indent: 56, color: theme.colorScheme.outline),
               _SettingsRow(
                 icon: Icons.language_rounded,
                 iconBg: _kAccent.withValues(alpha: 0.10),
@@ -152,23 +147,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 subtitle: settings.locale.languageCode == 'fr'
                     ? l.settingsLangFr
                     : l.settingsLangEn,
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFFD1D5DB),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 20,
                 ),
                 onTap: () => _showLanguagePicker(context, l),
               ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
+              Divider(height: 1, indent: 56, color: theme.colorScheme.outline),
               _SettingsRow(
                 icon: Icons.dark_mode_rounded,
                 iconBg: const Color(0xFF6366F1).withValues(alpha: 0.10),
                 iconColor: const Color(0xFF6366F1),
                 title: l.settingsTheme,
                 subtitle: _themeLabel(settings.themeMode, l),
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFFD1D5DB),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 20,
                 ),
                 onTap: () => _showThemePicker(context, settings.themeMode, l),
@@ -182,20 +177,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               _SettingsRow(
                 icon: Icons.info_outline_rounded,
-                iconBg: _kPrimary.withValues(alpha: 0.08),
-                iconColor: _kPrimary,
+                iconBg: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                iconColor: theme.colorScheme.onSurface,
                 title: l.settingsVersion,
                 subtitle: 'SmartStep v1.0.0',
               ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
+              Divider(height: 1, indent: 56, color: theme.colorScheme.outline),
               _SettingsRow(
                 icon: Icons.description_outlined,
-                iconBg: _kPrimary.withValues(alpha: 0.08),
-                iconColor: _kPrimary,
+                iconBg: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                iconColor: theme.colorScheme.onSurface,
                 title: l.settingsLicenses,
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFFD1D5DB),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 20,
                 ),
               ),
@@ -320,11 +315,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               label,
               style: TextStyle(
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected ? _kAccent : _kPrimary,
+                color: selected ? _kAccent : Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
-          if (selected) Icon(Icons.check_rounded, color: _kAccent, size: 18),
+          if (selected) const Icon(Icons.check_rounded, color: _kAccent, size: 18),
         ],
       ),
     );
@@ -339,7 +334,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(l.settingsClearDialogTitle,
             style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Text(l.settingsClearDialogMsg,
-            style: const TextStyle(color: _kTextSecondary)),
+            style: TextStyle(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -382,10 +381,10 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: _kTextSecondary,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           letterSpacing: 0.8,
         ),
       ),
@@ -401,7 +400,7 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: _cardShadow(),
       ),
@@ -436,6 +435,7 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -461,16 +461,16 @@ class _SettingsRow extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: titleColor ?? _kPrimary,
+                      color: titleColor ?? theme.colorScheme.onSurface,
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: _kTextSecondary,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],

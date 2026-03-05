@@ -18,11 +18,14 @@ class SpeedGaugeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final secondaryColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: cardShadow(),
       ),
@@ -37,7 +40,7 @@ class SpeedGaugeCard extends StatelessWidget {
                     const Icon(Icons.speed, size: 14, color: Color(0xFFF59E0B)),
                     const SizedBox(width: 6),
                     Text(label,
-                        style: const TextStyle(color: kDashTextSec, fontSize: 13)),
+                        style: TextStyle(color: secondaryColor, fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -46,19 +49,19 @@ class SpeedGaugeCard extends StatelessWidget {
                   children: [
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: kDashPrimary,
+                        color: textColor,
                         height: 1,
                         letterSpacing: -1.5,
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 8, left: 6),
-                      child: Text('km/h',
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8, left: 6),
+                      child: Text(unit,
                           style: TextStyle(
-                              color: kDashTextSec,
+                              color: secondaryColor,
                               fontSize: 16,
                               fontWeight: FontWeight.w400)),
                     ),
@@ -71,7 +74,11 @@ class SpeedGaugeCard extends StatelessWidget {
             width: 80,
             height: 80,
             child: CustomPaint(
-              painter: _ArcGaugePainter(fraction: speedFraction),
+              painter: _ArcGaugePainter(
+                fraction: speedFraction,
+                textColor: textColor,
+                trackColor: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+              ),
             ),
           ),
         ],
@@ -81,8 +88,14 @@ class SpeedGaugeCard extends StatelessWidget {
 }
 
 class _ArcGaugePainter extends CustomPainter {
-  const _ArcGaugePainter({required this.fraction});
+  const _ArcGaugePainter({
+    required this.fraction,
+    required this.textColor,
+    required this.trackColor,
+  });
   final double fraction;
+  final Color textColor;
+  final Color trackColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -98,7 +111,7 @@ class _ArcGaugePainter extends CustomPainter {
       sweepTotal,
       false,
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.06)
+        ..color = trackColor
         ..strokeWidth = 8
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round,
@@ -129,19 +142,20 @@ class _ArcGaugePainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: '${(fraction * 100).toInt()}%',
-        style: const TextStyle(
-          color: kDashPrimary,
+        style: TextStyle(
+          color: textColor,
           fontSize: 13,
           fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
-    tp.paint(
-        canvas, center - Offset(tp.width / 2, tp.height / 2));
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
   }
 
   @override
   bool shouldRepaint(covariant _ArcGaugePainter old) =>
-      old.fraction != fraction;
+      old.fraction != fraction ||
+      old.textColor != textColor ||
+      old.trackColor != trackColor;
 }

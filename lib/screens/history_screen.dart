@@ -4,13 +4,10 @@ import 'package:modar/l10n/app_localizations.dart';
 import 'package:modar/providers.dart';
 import '../models/session.dart';
 
-const _kPrimary = Color(0xFF1C1F2E);
 const _kAccent = Color(0xFF2F80ED);
 const _kSuccess = Color(0xFF27AE60);
-const _kBg = Color(0xFFF7F8FA);
-const _kTextSecondary = Color(0xFF6B7280);
 
-List<BoxShadow> _cardShadow() => [
+List<BoxShadow> _cardShadow(BuildContext context) => [
       BoxShadow(
         color: Colors.black.withValues(alpha: 0.06),
         blurRadius: 20,
@@ -27,24 +24,24 @@ class HistoryScreen extends ConsumerWidget {
     final sessionsAsync = ref.watch(sessionsProvider);
 
     return Scaffold(
-      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: _kBg,
         title: Text(
           l.historyTitle,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: _cardShadow(),
+              boxShadow: _cardShadow(context),
             ),
             child: IconButton(
               onPressed: () => ref.invalidate(sessionsProvider),
-              icon: const Icon(Icons.refresh_rounded, size: 20, color: _kPrimary),
+              icon: Icon(Icons.refresh_rounded,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
         ],
@@ -54,7 +51,12 @@ class HistoryScreen extends ConsumerWidget {
           child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2),
         ),
         error: (e, _) => Center(
-          child: Text('${l.historyError}$e', style: const TextStyle(color: _kTextSecondary)),
+          child: Text('${l.historyError}$e',
+              style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6))),
         ),
         data: (sessions) => CustomScrollView(
           slivers: [
@@ -88,6 +90,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     double totalDistanceKm = 0;
     int totalSteps = 0;
     for (final s in sessions) {
@@ -99,9 +102,9 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow(),
+        boxShadow: _cardShadow(context),
       ),
       child: Row(
         children: [
@@ -113,7 +116,8 @@ class _SummaryCard extends StatelessWidget {
               color: _kAccent,
             ),
           ),
-          Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
+          Container(
+              width: 1, height: 40, color: theme.colorScheme.outline),
           Expanded(
             child: _SummaryStat(
               icon: Icons.route_rounded,
@@ -122,7 +126,8 @@ class _SummaryCard extends StatelessWidget {
               color: _kSuccess,
             ),
           ),
-          Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
+          Container(
+              width: 1, height: 40, color: theme.colorScheme.outline),
           Expanded(
             child: _SummaryStat(
               icon: Icons.directions_walk_rounded,
@@ -154,16 +159,23 @@ class _SummaryStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Icon(icon, size: 18, color: color),
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface),
         ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
       ],
     );
   }
@@ -175,18 +187,23 @@ class _SessionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow(),
+        boxShadow: _cardShadow(context),
       ),
       child: Column(
         children: [
           for (int i = 0; i < sessions.length; i++) ...[
             _SessionRow(session: sessions[i]),
             if (i < sessions.length - 1)
-              const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFF3F4F6)),
+              Divider(
+                  height: 1,
+                  indent: 72,
+                  endIndent: 16,
+                  color: theme.colorScheme.outline),
           ],
         ],
       ),
@@ -206,6 +223,7 @@ class _SessionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -217,7 +235,8 @@ class _SessionRow extends StatelessWidget {
               color: _kAccent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.directions_walk_rounded, color: _kAccent, size: 22),
+            child: const Icon(Icons.directions_walk_rounded,
+                color: _kAccent, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -226,17 +245,26 @@ class _SessionRow extends StatelessWidget {
               children: [
                 Text(
                   session.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _kPrimary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurface),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '${session.date}  ·  ${session.time}  ·  ${session.duration}',
-                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${session.steps} pas  ·  ${session.distance}',
-                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ],
             ),
@@ -246,25 +274,34 @@ class _SessionRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: _scoreColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${session.globalScore.toStringAsFixed(0)}%',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _scoreColor),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _scoreColor),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 session.avgSpeed,
-                style: const TextStyle(fontSize: 11, color: _kTextSecondary),
+                style: TextStyle(
+                    fontSize: 11,
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               ),
             ],
           ),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFD1D5DB)),
+          Icon(Icons.chevron_right_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
         ],
       ),
     );
@@ -277,6 +314,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -285,22 +323,29 @@ class _EmptyState extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(22),
-              boxShadow: _cardShadow(),
+              boxShadow: _cardShadow(context),
             ),
-            child: const Icon(Icons.history_rounded, size: 36, color: Color(0xFFD1D5DB)),
+            child: Icon(Icons.history_rounded,
+                size: 36,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
           ),
           const SizedBox(height: 20),
           Text(
             l.historyNoSession,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _kPrimary),
+            style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 6),
           Text(
             l.historyNoSessionDesc,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: _kTextSecondary),
+            style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
         ],
       ),

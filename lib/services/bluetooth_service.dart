@@ -99,7 +99,6 @@ class AppBluetoothService {
 
       final services = await device.discoverServices();
 
-      /*
       for (final service in services) {
         print("Service found: ${service.uuid}");
 
@@ -111,16 +110,16 @@ class AppBluetoothService {
 
             await characteristic.setNotifyValue(true);
 
-            /*final sub = characteristic.onValueReceived.listen((value) {
+            final sub = characteristic.onValueReceived.listen((value) {
               _handleIncomingData(value);
             });
-            _charSubscriptions.add(sub);*/
-            startRandomSimulation();
+            _charSubscriptions.add(sub);
+            //startRandomSimulation();
           }
         }
-      }*/
+      }
 
-      startRandomSimulation();
+      //startRandomSimulation();
     } catch (e) {
       print("Connection error: $e");
     }
@@ -131,37 +130,28 @@ class AppBluetoothService {
   /// ------------------------------------------------------
 
   void _handleIncomingData(List<int> value) {
-    // Try JSON first
+    print("values : $value");
+
     try {
       final decoded = utf8.decode(value);
+      print("decode : $decoded");
+
       final json = jsonDecode(decoded);
+      print("json : $json");
+
       shoeDataService.addSample(
         ShoeSample(
-          steps: json["pas"] as int,
-          angleX: (json["angle_x"] as num).toDouble(),
-          angleY: (json["angle_y"] as num).toDouble(),
-          badPosition: json["mauvais_positionnement"] as bool,
+          steps: json["pas"] ?? 0,
+          angleX: double.parse(json["angle_x"].toString()),
+          angleY: double.parse(json["angle_y"].toString()),
+          badPosition: json["mauvais_positionnement"] ?? false,
           timestamp: DateTime.now(),
         ),
       );
-      return;
-    } catch (_) {}
 
-    // Try binary format: int32 steps | float32 angle_x | float32 angle_y | uint8 bad_pos (13 bytes)
-    if (value.length >= 13) {
-      try {
-        final data = ByteData.sublistView(Uint8List.fromList(value));
-        shoeDataService.addSample(
-          ShoeSample(
-            steps: data.getInt32(0, Endian.little),
-            angleX: data.getFloat32(4, Endian.little),
-            angleY: data.getFloat32(8, Endian.little),
-            badPosition: data.getUint8(12) != 0,
-            timestamp: DateTime.now(),
-          ),
-        );
-        return;
-      } catch (_) {}
+      return;
+    } catch (e) {
+      print("JSON parse error: $e");
     }
 
     final hex = value.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');

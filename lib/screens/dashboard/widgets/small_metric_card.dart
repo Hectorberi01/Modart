@@ -16,10 +16,11 @@ class SmallMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: cardShadow(),
       ),
@@ -28,11 +29,13 @@ class SmallMetricCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 12, color: kDashTextSec),
+              Icon(icon, size: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               const SizedBox(width: 5),
               Flexible(
                 child: Text(label,
-                    style: const TextStyle(color: kDashTextSec, fontSize: 12),
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 12),
                     overflow: TextOverflow.ellipsis),
               ),
             ],
@@ -43,18 +46,19 @@ class SmallMetricCard extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: kDashPrimary,
+                    color: theme.colorScheme.onSurface,
                     height: 1,
                     letterSpacing: -0.5),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4, left: 4),
                 child: Text(unit,
-                    style: const TextStyle(
-                        color: kDashTextSec, fontSize: 13)),
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 13)),
               ),
             ],
           ),

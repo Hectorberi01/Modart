@@ -23,6 +23,7 @@ class BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final diff = (leftPercent - 0.5).abs();
     final status = diff < 0.05
         ? l.balanceOptimal
@@ -34,7 +35,7 @@ class BalanceCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: cardShadow(),
       ),
@@ -46,10 +47,13 @@ class BalanceCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.balance, size: 14, color: kDashTextSec),
+                  Icon(Icons.balance, size: 14,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: 6),
                   Text(l.balanceWeightTitle,
-                      style: const TextStyle(color: kDashTextSec, fontSize: 13)),
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          fontSize: 13)),
                 ],
               ),
               Container(
@@ -75,18 +79,20 @@ class BalanceCard extends StatelessWidget {
             children: [
               Text(
                 totalWeight,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: kDashPrimary,
+                  color: theme.colorScheme.onSurface,
                   height: 1,
                   letterSpacing: -1,
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 5, left: 5),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 5, left: 5),
                 child: Text('kg',
-                    style: TextStyle(color: kDashTextSec, fontSize: 16)),
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 16)),
               ),
             ],
           ),
@@ -115,17 +121,21 @@ class _BalanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: kDashTextSec, fontSize: 12)),
+            Text(label,
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontSize: 12)),
             Text('${(percent * 100).toInt()}%',
-                style: const TextStyle(
+                style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: kDashPrimary)),
+                    color: theme.colorScheme.onSurface)),
           ],
         ),
         const SizedBox(height: 5),
@@ -134,7 +144,7 @@ class _BalanceRow extends StatelessWidget {
           child: LinearProgressIndicator(
             value: percent,
             minHeight: 6,
-            backgroundColor: Colors.black.withValues(alpha: 0.06),
+            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.08),
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),

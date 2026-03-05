@@ -8,12 +8,9 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const _kPrimary = Color(0xFF1C1F2E);
 const _kAccent = Color(0xFF2F80ED);
 const _kSuccess = Color(0xFF27AE60);
 const _kDanger = Color(0xFFEB5757);
-const _kTextSec = Color(0xFF6B7280);
-const _kBg = Color(0xFFF7F8FA);
 
 List<BoxShadow> _cardShadow() => [
   BoxShadow(
@@ -81,17 +78,16 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final secondaryColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return Scaffold(
-      backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: _kBg,
         centerTitle: true,
         title: Text(
           l.btTitle,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: _kPrimary,
           ),
         ),
       ),
@@ -173,24 +169,24 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(fontSize: 14, color: _kPrimary),
+              style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: l.btSearchHint,
-                hintStyle: const TextStyle(color: _kTextSec, fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: _kTextSec, size: 20),
+                hintStyle: TextStyle(color: secondaryColor, fontSize: 14),
+                prefixIcon: Icon(Icons.search, color: secondaryColor, size: 20),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: theme.cardColor,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                      color: theme.colorScheme.outline),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                      color: theme.colorScheme.outline),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -210,8 +206,8 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
               children: [
                 Text(
                   l.btDetectedDevices,
-                  style: const TextStyle(
-                    color: _kTextSec,
+                  style: TextStyle(
+                    color: secondaryColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
@@ -288,12 +284,13 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.bluetooth_searching,
-                            size: 48, color: Colors.grey.shade300),
+                            size: 48,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.2)),
                         const SizedBox(height: 12),
                         Text(
                           l.btNoDevice,
-                          style: const TextStyle(
-                              color: _kTextSec, fontSize: 14),
+                          style: TextStyle(color: secondaryColor, fontSize: 14),
                         ),
                       ],
                     ),
@@ -347,7 +344,7 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
               children: [
                 Text(
                   l.btShoeInstruction,
-                  style: const TextStyle(color: _kTextSec, fontSize: 12),
+                  style: TextStyle(color: secondaryColor, fontSize: 12),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -356,8 +353,8 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                   child: ElevatedButton(
                     onPressed: widget.onContinue,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _kPrimary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
@@ -500,12 +497,14 @@ class _DeviceCardState extends State<_DeviceCard> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final secondaryColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     final isConnected = _status == DeviceStatus.connected;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isConnected
@@ -526,12 +525,12 @@ class _DeviceCardState extends State<_DeviceCard> {
                 decoration: BoxDecoration(
                   color: isConnected
                       ? _kSuccess.withValues(alpha: 0.1)
-                      : _kBg,
+                      : theme.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.directions_walk,
                     size: 20,
-                    color: isConnected ? _kSuccess : _kTextSec),
+                    color: isConnected ? _kSuccess : secondaryColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -539,14 +538,13 @@ class _DeviceCardState extends State<_DeviceCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(widget.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
-                            color: _kPrimary)),
+                            color: theme.colorScheme.onSurface)),
                     const SizedBox(height: 2),
                     Text(widget.device.remoteId.str,
-                        style: const TextStyle(
-                            color: _kTextSec, fontSize: 11)),
+                        style: TextStyle(color: secondaryColor, fontSize: 11)),
                   ],
                 ),
               ),
@@ -578,10 +576,10 @@ class _DeviceCardState extends State<_DeviceCard> {
           Row(
             children: [
               Text(l.btSignal,
-                  style: const TextStyle(color: _kTextSec, fontSize: 11)),
+                  style: TextStyle(color: secondaryColor, fontSize: 11)),
               const Spacer(),
               Text('${widget.rssi} dBm',
-                  style: const TextStyle(color: _kTextSec, fontSize: 11)),
+                  style: TextStyle(color: secondaryColor, fontSize: 11)),
             ],
           ),
           const SizedBox(height: 5),
@@ -590,7 +588,8 @@ class _DeviceCardState extends State<_DeviceCard> {
             child: LinearProgressIndicator(
               value: _rssiPercent,
               minHeight: 4,
-              backgroundColor: Colors.black.withValues(alpha: 0.06),
+              backgroundColor:
+                  theme.colorScheme.onSurface.withValues(alpha: 0.08),
               valueColor: AlwaysStoppedAnimation<Color>(_rssiColor),
             ),
           ),
@@ -619,6 +618,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     switch (status) {
       case DeviceStatus.disconnected:
         return SizedBox(
@@ -686,12 +686,14 @@ class _ActionButton extends StatelessWidget {
           width: double.infinity,
           height: 42,
           decoration: BoxDecoration(
-            color: _kBg,
+            color: theme.scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
             child: Text(l.btOutOfRange,
-                style: const TextStyle(color: _kTextSec, fontSize: 13)),
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontSize: 13)),
           ),
         );
     }
