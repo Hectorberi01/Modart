@@ -27,8 +27,10 @@ class AppBluetoothService {
   int _steps = 0;
 
   bool _simulationStarted = false;
+  bool get isSimulating => _simulationStarted;
 
   BluetoothDevice? _connectedDevice;
+  bool get isConnected => _connectedDevice != null;
   final List<StreamSubscription> _charSubscriptions = [];
 
   /// Streams exposés
@@ -99,7 +101,6 @@ class AppBluetoothService {
 
       final services = await device.discoverServices();
 
-      /*
       for (final service in services) {
         print("Service found: ${service.uuid}");
 
@@ -111,16 +112,13 @@ class AppBluetoothService {
 
             await characteristic.setNotifyValue(true);
 
-            /*final sub = characteristic.onValueReceived.listen((value) {
+            final sub = characteristic.onValueReceived.listen((value) {
               _handleIncomingData(value);
             });
-            _charSubscriptions.add(sub);*/
-            startRandomSimulation();
+            _charSubscriptions.add(sub);
           }
         }
-      }*/
-
-      startRandomSimulation();
+      }
     } catch (e) {
       print("Connection error: $e");
     }

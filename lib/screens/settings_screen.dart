@@ -9,6 +9,7 @@ import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
 import '../models/user_profile.dart';
 import 'bluetooth_screen.dart';
+import 'debug_3d_shoe_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsScreen — Merged v1 settings + v4 profile (glassmorphism)
@@ -26,6 +27,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _autoConnect = true;
   bool _hapticFeedback = true;
   bool _isEditingPersonal = false;
+  int _debugTapCount = 0;
+  bool _debugUnlocked = false;
 
   UserGender _editingGender = UserGender.male;
   late TextEditingController _nameCtrl;
@@ -512,6 +515,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       iconColor: isDark ? SmartSoleColors.textSecondaryDark : SmartSoleColors.textSecondaryLight,
                       label: l.settingsVersion,
                       subtitle: 'Modart v1.0.0',
+                      onTap: () {
+                        _debugTapCount++;
+                        if (_debugTapCount >= 7 && !_debugUnlocked) {
+                          setState(() => _debugUnlocked = true);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Mode debug activé'), behavior: SnackBarBehavior.floating),
+                          );
+                        } else if (!_debugUnlocked && _debugTapCount >= 4) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${7 - _debugTapCount} taps restants pour le mode debug'), behavior: SnackBarBehavior.floating, duration: const Duration(milliseconds: 800)),
+                          );
+                        }
+                      },
                     ),
                     _divider(isDark),
                     _SettingsTile(
@@ -521,6 +537,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       trailing: Icon(Icons.chevron_right_rounded, color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight, size: 20),
                       onTap: () => showLicensePage(context: context, applicationName: 'Modart', applicationVersion: '1.0.0'),
                     ),
+                    if (_debugUnlocked) ...[
+                      _divider(isDark),
+                      _SettingsTile(
+                        icon: Icons.bug_report_outlined,
+                        iconColor: SmartSoleColors.biAlert,
+                        label: 'Debug 3D Shoe',
+                        subtitle: 'WebView — 3dshoe.html',
+                        trailing: Icon(Icons.chevron_right_rounded, color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight, size: 20),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Debug3dShoeScreen())),
+                      ),
+                    ],
                   ],
                 ),
               ),
