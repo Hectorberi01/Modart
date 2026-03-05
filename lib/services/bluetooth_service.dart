@@ -165,17 +165,31 @@ class AppBluetoothService {
       final json = jsonDecode(decoded);
       _log('JSON', '$json');
 
+      double p(dynamic v) => double.tryParse(v.toString()) ?? 0.0;
+
       shoeDataService.addSample(
         ShoeSample(
           steps: json["pas"] ?? 0,
-          angleX: double.parse(json["angle_x"].toString()),
-          angleY: double.parse(json["angle_y"].toString()),
+          angleX: p(json["angle_x"]),
+          angleY: p(json["angle_y"]),
           badPosition: json["mauvais_positionnement"] ?? false,
           timestamp: DateTime.now(),
+          espTimestamp: json["t"],
+          distanceM: p(json["distance_m"]),
+          ax: p(json["ax"]),
+          ay: p(json["ay"]),
+          az: p(json["az"]),
+          gx: p(json["gx"]),
+          gy: p(json["gy"]),
+          gz: p(json["gz"]),
+          mag: p(json["mag"]),
+          delta: p(json["delta"]),
+          poidsTalon: p(json["poids_talon_g"]),
+          poidsAvantpied: p(json["poids_avantpied_g"]),
         ),
       );
 
-      _log('DATA', 'Sample added: pas=${json["pas"]} aX=${json["angle_x"]} aY=${json["angle_y"]} bad=${json["mauvais_positionnement"]}');
+      _log('DATA', 'pas=${json["pas"]} aX=${json["angle_x"]} aY=${json["angle_y"]} gx=${json["gx"]} gy=${json["gy"]} gz=${json["gz"]} mag=${json["mag"]} bad=${json["mauvais_positionnement"]} talon=${json["poids_talon_g"]} avant=${json["poids_avantpied_g"]}');
       return;
     } catch (e) {
       _log('ERR', 'JSON parse: $e');

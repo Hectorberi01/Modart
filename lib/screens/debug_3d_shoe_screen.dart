@@ -49,14 +49,14 @@ class _Debug3dShoeScreenState extends ConsumerState<Debug3dShoeScreen> {
   void _onSample(ShoeSample sample) {
     final json = jsonEncode({
       'pas': sample.steps,
-      'distance_m': (sample.steps * 0.70).toStringAsFixed(2),
+      'distance_m': sample.distanceM?.toStringAsFixed(2) ?? (sample.steps * 0.70).toStringAsFixed(2),
       'angle_x': sample.angleX,
       'angle_y': sample.angleY,
-      'gx': 0.0,
-      'gy': 0.0,
-      'gz': 0.0,
-      'mag': 1.0,
-      'delta': 0.0,
+      'gx': sample.gx ?? 0.0,
+      'gy': sample.gy ?? 0.0,
+      'gz': sample.gz ?? 0.0,
+      'mag': sample.mag ?? 1.0,
+      'delta': sample.delta ?? 0.0,
       'mauvais_positionnement': sample.badPosition,
     });
     _controller.runJavaScript("updateShoe('${json.replaceAll("'", "\\'")}')");
