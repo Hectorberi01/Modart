@@ -10,6 +10,7 @@ import '../widgets/mesh_gradient_background.dart';
 import '../models/user_profile.dart';
 import 'bluetooth_screen.dart';
 import 'debug_3d_shoe_screen.dart';
+import 'debug_console_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsScreen — Merged v1 settings + v4 profile (glassmorphism)
@@ -538,6 +539,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onTap: () => showLicensePage(context: context, applicationName: 'Modart', applicationVersion: '1.0.0'),
                     ),
                     if (_debugUnlocked) ...[
+                      _divider(isDark),
+                      _SettingsTile(
+                        icon: Icons.terminal,
+                        iconColor: const Color(0xFFFF9800),
+                        label: 'BLE Console',
+                        subtitle: 'Logs bruts ESP32 / BLE',
+                        trailing: Icon(Icons.chevron_right_rounded, color: isDark ? SmartSoleColors.textTertiaryDark : SmartSoleColors.textTertiaryLight, size: 20),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebugConsoleScreen())),
+                      ),
                       _divider(isDark),
                       _SettingsTile(
                         icon: Icons.bug_report_outlined,

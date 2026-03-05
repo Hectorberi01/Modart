@@ -16,6 +16,13 @@ enum ScanStartResult {
   bluetoothOff,
 }
 
+class BleLogEntry {
+  final DateTime time;
+  final String tag;
+  final String message;
+  BleLogEntry(this.tag, this.message) : time = DateTime.now();
+}
+
 class AppBluetoothService {
   final ShoeDataService shoeDataService;
 
@@ -33,6 +40,18 @@ class AppBluetoothService {
   bool get isConnected => _connectedDevice != null;
   final List<StreamSubscription> _charSubscriptions = [];
 
+  // ── Debug log stream ──────────────────────────────────────────────────────
+  final _logController = StreamController<BleLogEntry>.broadcast();
+  Stream<BleLogEntry> get logStream => _logController.stream;
+  final List<BleLogEntry> logs = [];
+
+  void _log(String tag, String message) {
+    final entry = BleLogEntry(tag, message);
+    logs.add(entry);
+    _logController.add(entry);
+    print("[$tag] $message");
+  }
+
   /// Streams exposés
   Stream<List<ScanResult>> get scanResults => FlutterBluePlus.scanResults;
 
@@ -46,7 +65,7 @@ class AppBluetoothService {
   /// ------------------------------------------------------
 
   Future<ScanStartResult> startScan() async {
-    print("--- AppBluetoothService: Starting scan sequence ---");
+    _log('SCAN', 'Starting scan sequence');
 
     if (Platform.isAndroid) {
       final statuses =
@@ -56,28 +75,33 @@ class AppBluetoothService {
             Permission.location,
           ].request();
 
-      statuses.forEach((p, s) => print("$p -> $s"));
+      statuses.forEach((p, s) => _log('PERM', '$p -> $s'));
 
       if (statuses.values.any((s) => s.isPermanentlyDenied)) {
+        _log('PERM', 'Permanently denied');
         return ScanStartResult.permissionPermanentlyDenied;
       }
 
       if (!statuses.values.every((s) => s.isGranted)) {
+        _log('PERM', 'Not all granted');
         return ScanStartResult.permissionDenied;
       }
     }
 
     if (await FlutterBluePlus.isSupported == false) {
+      _log('SCAN', 'Bluetooth not supported');
       return ScanStartResult.bluetoothNotSupported;
     }
 
     final state = await FlutterBluePlus.adapterState.first;
 
     if (state != BluetoothAdapterState.on) {
+      _log('SCAN', 'Bluetooth off');
       return ScanStartResult.bluetoothOff;
     }
 
     await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+    _log('SCAN', 'Scan started (15s timeout)');
 
     return ScanStartResult.success;
   }
@@ -91,24 +115,25 @@ class AppBluetoothService {
   /// ------------------------------------------------------
 
   Future<void> connect(BluetoothDevice device) async {
-    print("--- Connecting to ${device.remoteId} ---");
+    _log('CONN', 'Connecting to ${device.remoteId}...');
 
     try {
       await device.connect(license: License.free, autoConnect: false);
       _connectedDevice = device;
 
-      print("--- Connected successfully ---");
+      _log('CONN', 'Connected successfully');
 
       final services = await device.discoverServices();
+      _log('CONN', '${services.length} services discovered');
 
       for (final service in services) {
-        print("Service found: ${service.uuid}");
+        _log('SVC', 'Service: ${service.uuid}');
 
         for (final characteristic in service.characteristics) {
-          print("Characteristic found: ${characteristic.uuid}");
+          _log('CHR', 'Char: ${characteristic.uuid} props=${characteristic.properties}');
 
           if (characteristic.properties.notify) {
-            print("Enabling notifications");
+            _log('CHR', 'Enabling notifications on ${characteristic.uuid}');
 
             await characteristic.setNotifyValue(true);
 
@@ -116,11 +141,12 @@ class AppBluetoothService {
               _handleIncomingData(value);
             });
             _charSubscriptions.add(sub);
+            _log('CHR', 'Subscribed to ${characteristic.uuid}');
           }
         }
       }
     } catch (e) {
-      print("Connection error: $e");
+      _log('ERR', 'Connection error: $e');
     }
   }
 
@@ -129,15 +155,15 @@ class AppBluetoothService {
   /// ------------------------------------------------------
 
   void _handleIncomingData(List<int> value) {
-    print("values : $value");
+    _log('RAW', '${value.length} bytes: $value');
 
     // Try JSON first
     try {
       final decoded = utf8.decode(value);
-      print("decode : $decoded");
+      _log('RAW', 'UTF-8: $decoded');
 
       final json = jsonDecode(decoded);
-      print("json : $json");
+      _log('JSON', '$json');
 
       shoeDataService.addSample(
         ShoeSample(
@@ -149,30 +175,38 @@ class AppBluetoothService {
         ),
       );
 
+      _log('DATA', 'Sample added: pas=${json["pas"]} aX=${json["angle_x"]} aY=${json["angle_y"]} bad=${json["mauvais_positionnement"]}');
       return;
     } catch (e) {
-      print("JSON parse error: $e");
+      _log('ERR', 'JSON parse: $e');
     }
 
     // Try binary format: int32 steps | float32 angle_x | float32 angle_y | uint8 bad_pos (13 bytes)
     if (value.length >= 13) {
       try {
         final data = ByteData.sublistView(Uint8List.fromList(value));
+        final steps = data.getInt32(0, Endian.little);
+        final ax = data.getFloat32(4, Endian.little);
+        final ay = data.getFloat32(8, Endian.little);
+        final bad = data.getUint8(12) != 0;
         shoeDataService.addSample(
           ShoeSample(
-            steps: data.getInt32(0, Endian.little),
-            angleX: data.getFloat32(4, Endian.little),
-            angleY: data.getFloat32(8, Endian.little),
-            badPosition: data.getUint8(12) != 0,
+            steps: steps,
+            angleX: ax,
+            angleY: ay,
+            badPosition: bad,
             timestamp: DateTime.now(),
           ),
         );
+        _log('BIN', 'Sample added: steps=$steps aX=$ax aY=$ay bad=$bad');
         return;
-      } catch (_) {}
+      } catch (e) {
+        _log('ERR', 'Binary parse: $e');
+      }
     }
 
     final hex = value.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
-    print("BLE unknown format [${value.length} bytes]: $hex");
+    _log('???', 'Unknown format [${value.length} bytes]: $hex');
   }
 
   /// ------------------------------------------------------
@@ -182,7 +216,7 @@ class AppBluetoothService {
   void startRandomSimulation() {
     if (_simulationTimer != null) return;
 
-    print("Starting random simulation");
+    _log('SIM', 'Starting random simulation');
 
     _simulationStarted = true;
 
