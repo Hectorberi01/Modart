@@ -62,9 +62,6 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
     _sessionStart = DateTime.now();
     _sessionDuration = Duration.zero;
 
-    // Start the BLE simulation (random data) on the bluetooth service
-    ref.read(bluetoothServiceProvider).startRandomSimulation();
-
     // Timer for session duration display
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
@@ -84,16 +81,12 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
     _sessionTimer?.cancel();
     _sessionTimer = null;
 
-    // Stop BLE simulation
-    ref.read(bluetoothServiceProvider).stopSimulation();
-
     // Save the session to database
     _saveSession();
   }
 
   Future<void> _saveSession() async {
     final session = ref.read(shoeSessionViewModelProvider);
-    final shoeService = ref.read(shoeDataServiceProvider);
     final now = DateTime.now();
 
     final newSession = Session(
