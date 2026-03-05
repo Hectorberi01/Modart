@@ -106,11 +106,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
+    final profileType = ref.read(authProvider).userProfile?.profileType ?? ProfileType.urban;
     await ref.read(authProvider.notifier).signOut();
     if (mounted) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/onboarding', (r) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/auth',
+        (r) => false,
+        arguments: UserProfile(email: '', profileType: profileType),
+      );
     }
   }
 

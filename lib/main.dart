@@ -27,6 +27,7 @@ import 'screens/imm_report_screen.dart';
 import 'screens/pro_dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
+import 'widgets/custom_loading_indicator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,22 +91,22 @@ class ModarApp extends ConsumerWidget {
       case '/splash':
         return _fadeRoute(const _AuthGate(), settings.name!);
       case '/onboarding':
-        return _fadeRoute(const OnboardingScreen(), settings.name!);
+        return _slideFromRightRoute(const OnboardingScreen(), settings.name!);
       case '/auth':
         final profile = settings.arguments as UserProfile?;
         if (profile != null) {
-          return _fadeRoute(AuthScreen(profile: profile), settings.name!);
+          return _slideFromRightRoute(AuthScreen(profile: profile), settings.name!);
         }
-        return _fadeRoute(const OnboardingScreen(), '/onboarding');
+        return _slideFromRightRoute(const OnboardingScreen(), '/onboarding');
       case '/register':
         final profile = settings.arguments as UserProfile?;
         if (profile != null) {
-          return _fadeRoute(
+          return _slideFromRightRoute(
             RegistrationJourneyScreen(initialProfile: profile),
             settings.name!,
           );
         }
-        return _fadeRoute(const OnboardingScreen(), '/onboarding');
+        return _slideFromRightRoute(const OnboardingScreen(), '/onboarding');
       case '/bluetooth':
         return _fadeRoute(
           BluetoothScreen(onContinue: () {}),
@@ -147,6 +148,41 @@ class ModarApp extends ConsumerWidget {
     );
   }
 
+  static PageRouteBuilder _slideFromRightRoute(Widget page, String routeName) {
+    return PageRouteBuilder(
+      settings: RouteSettings(name: routeName),
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        final secondaryCurved = CurvedAnimation(
+          parent: secondaryAnimation,
+          curve: Curves.easeInCubic,
+        );
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(1.0, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: SlideTransition(
+            position: Tween(
+              begin: Offset.zero,
+              end: const Offset(-0.3, 0),
+            ).animate(secondaryCurved),
+            child: FadeTransition(
+              opacity: Tween(begin: 0.8, end: 1.0).animate(curved),
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   static PageRouteBuilder _slideUpRoute(Widget page, String routeName) {
     return PageRouteBuilder(
       settings: RouteSettings(name: routeName),
@@ -178,6 +214,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   int _previousIndex = 0;
   ProfileType _profileType = ProfileType.urban;
   bool _hasAutoConnected = false;
+  bool _showBleOnDashboard = false;
 
   void _openBluetooth() {
     Navigator.push(
@@ -197,7 +234,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ];
     }
     final base = <Widget>[
-      const LiveDashboardScreen(),
+      LiveDashboardScreen(showBlePrompt: _showBleOnDashboard),
       const HistoryScreen(),
       const HistoryTrendsScreen(),
     ];
@@ -237,6 +274,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     } else if (args is Map) {
       if (args['profileType'] is ProfileType) {
         _profileType = args['profileType'];
+      }
+      if (args['showBlePrompt'] == true && !_showBleOnDashboard) {
+        _showBleOnDashboard = true;
       }
       if (args['autoConnect'] == true && !_hasAutoConnected) {
         _hasAutoConnected = true;
@@ -513,10 +553,7 @@ class _AuthGateState extends ConsumerState<_AuthGate> {
       return const Scaffold(
         backgroundColor: SmartSoleColors.darkBg,
         body: Center(
-          child: CircularProgressIndicator(
-            color: SmartSoleColors.biNormal,
-            strokeWidth: 2,
-          ),
+          child: CustomLoadingIndicator(),
         ),
       );
     }
@@ -525,10 +562,7 @@ class _AuthGateState extends ConsumerState<_AuthGate> {
     return const Scaffold(
       backgroundColor: SmartSoleColors.darkBg,
       body: Center(
-        child: CircularProgressIndicator(
-          color: SmartSoleColors.biNormal,
-          strokeWidth: 2,
-        ),
+        child: CustomLoadingIndicator(),
       ),
     );
   }

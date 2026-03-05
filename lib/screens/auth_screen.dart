@@ -164,21 +164,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
-        barrierColor: Colors.black,
-        transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (ctx, animation, _) {
+        barrierColor: SmartSoleColors.darkBg,
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (ctx, animation, secondaryAnimation) {
           // Auto-navigate apres 2.5s
-          Future.delayed(const Duration(milliseconds: 2500), () {
+          Future.delayed(const Duration(milliseconds: 2800), () {
             if (ctx.mounted) {
               Navigator.of(ctx).pushNamedAndRemoveUntil(
                 '/home',
                 (route) => false,
-                arguments: _type,
+                arguments: {'profileType': _type, 'showBlePrompt': true},
               );
             }
           });
           return FadeTransition(
-            opacity: animation,
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
             child: Scaffold(
               backgroundColor: SmartSoleColors.darkBg,
               body: SafeArea(
@@ -186,33 +187,45 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SvgPicture.asset(
-                        'assets/images/login_or_sing_in_succes.svg',
-                        width: 280,
-                        height: 280,
+                      // Logo en haut
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 32),
+                      // Illustration principale
+                      Image.asset(
+                        'assets/images/walk1.gif',
+                        width: 300,
+                        height: 260,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 36),
                       Text(
                         AppLocalizations.of(ctx).authLoginSuccess,
                         style: TextStyle(
                           fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Text(
                         AppLocalizations.of(ctx).authWelcome,
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
+                          fontSize: 15,
+                          color: Colors.white60,
                         ),
                       ),
                       const SizedBox(height: 40),
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFFF97316),
-                        ),
+                      // Loader SVG
+                      SvgPicture.asset(
+                        'assets/images/loading.svg',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.contain,
                       ),
                     ],
                   ),
@@ -304,20 +317,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
     return Column(
       children: [
-        Container(
+        Image.asset(
+          'assets/images/logo.png',
           width: 72,
           height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: SmartSoleColors.heroGradient,
-            boxShadow: [
-              BoxShadow(
-                color: SmartSoleColors.biTeal.withValues(alpha: 0.30),
-                blurRadius: 24,
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.white, size: 34),
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 20),
         Text(
