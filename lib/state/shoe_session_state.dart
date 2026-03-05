@@ -5,6 +5,8 @@ class ShoeSessionState {
   final double postureScore;
   final double globalScore;
   final bool badPosition;
+  final double poidsTalon;
+  final double poidsAvantpied;
 
   const ShoeSessionState({
     this.steps = 0,
@@ -13,6 +15,8 @@ class ShoeSessionState {
     this.postureScore = 100,
     this.globalScore = 0,
     this.badPosition = false,
+    this.poidsTalon = 0,
+    this.poidsAvantpied = 0,
   });
 
   ShoeSessionState copyWith({
@@ -22,6 +26,8 @@ class ShoeSessionState {
     double? postureScore,
     double? globalScore,
     bool? badPosition,
+    double? poidsTalon,
+    double? poidsAvantpied,
   }) {
     return ShoeSessionState(
       steps: steps ?? this.steps,
@@ -30,6 +36,8 @@ class ShoeSessionState {
       postureScore: postureScore ?? this.postureScore,
       globalScore: globalScore ?? this.globalScore,
       badPosition: badPosition ?? this.badPosition,
+      poidsTalon: poidsTalon ?? this.poidsTalon,
+      poidsAvantpied: poidsAvantpied ?? this.poidsAvantpied,
     );
   }
 }

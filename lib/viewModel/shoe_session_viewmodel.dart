@@ -28,6 +28,8 @@ class ShoeSessionViewModel extends StateNotifier<ShoeSessionState> {
         postureScore: posture,
         globalScore: globalScore,
         badPosition: sample.badPosition,
+        poidsTalon: sample.poidsTalon ?? 0,
+        poidsAvantpied: sample.poidsAvantpied ?? 0,
       );
     });
   }

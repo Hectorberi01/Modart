@@ -154,27 +154,45 @@ class _LiveDashboardScreenState extends ConsumerState<LiveDashboardScreen> {
     // Check if we have live data (session active OR BLE connected)
     final hasData = _isSessionActive || session.steps > 0;
 
-    // Derive pressure data from posture score (simplified mapping)
-    final postureRatio = (100 - session.postureScore) / 100;
-    final leftPressure = hasData
-        ? PressureData(
-            heel: 0.20 + postureRatio * 0.1,
-            midfoot: 0.15,
-            forefoot: 0.25 + postureRatio * 0.15,
-            toe: 0.10 + postureRatio * 0.05,
-          )
-        : PressureData.zero;
-    final rightPressure = hasData
-        ? PressureData(
-            heel: 0.22 + postureRatio * 0.08,
-            midfoot: 0.18,
-            forefoot: 0.20 + postureRatio * 0.12,
-            toe: 0.12 + postureRatio * 0.03,
-          )
-        : PressureData.zero;
+    // Build pressure data from real ESP weight sensors
+    final talon = session.poidsTalon;
+    final avant = session.poidsAvantpied;
+    final totalPoids = talon + avant;
+    final PressureData leftPressure;
+    final PressureData rightPressure;
+    if (hasData && totalPoids > 0) {
+      // Normalize real sensor data into 4 zones
+      final heelNorm = talon / totalPoids;
+      final foreNorm = avant / totalPoids;
+      leftPressure = PressureData(
+        heel: heelNorm * 0.9,
+        midfoot: (1 - heelNorm - foreNorm).clamp(0.05, 0.3),
+        forefoot: foreNorm * 0.9,
+        toe: foreNorm * 0.1,
+      );
+      rightPressure = leftPressure;
+    } else if (hasData) {
+      // Fallback: derive from posture score when weight sensors report 0
+      final postureRatio = (100 - session.postureScore) / 100;
+      leftPressure = PressureData(
+        heel: 0.30 + postureRatio * 0.05,
+        midfoot: 0.20,
+        forefoot: 0.35 + postureRatio * 0.1,
+        toe: 0.15,
+      );
+      rightPressure = leftPressure;
+    } else {
+      leftPressure = PressureData.zero;
+      rightPressure = PressureData.zero;
+    }
 
-    // Derive MLPI from posture (simplified)
-    final mlpi = hasData ? (session.postureScore - 50) / 100 : 0.0;
+    // MLPI: medial-lateral pressure index from real weight data
+    // Positive = more forefoot, Negative = more heel
+    final mlpi = hasData && totalPoids > 0
+        ? ((avant - talon) / totalPoids).clamp(-1.0, 1.0)
+        : hasData
+            ? (session.postureScore - 50) / 100
+            : 0.0;
     final segment = hasData ? _computeSegment(session.cadence) : WalkSegment.stopped;
     final speed = _isSessionActive && _sessionDuration.inSeconds > 0
         ? (session.distance / 1000) / (_sessionDuration.inSeconds / 3600).clamp(0.001, double.infinity)

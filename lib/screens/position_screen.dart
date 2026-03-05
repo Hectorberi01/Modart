@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modar/l10n/app_localizations.dart';
+import 'package:modar/providers.dart';
 import 'bluetooth_screen.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
@@ -19,14 +21,14 @@ List<BoxShadow> _cardShadow() => [
       )
     ];
 
-class PositionScreen extends StatefulWidget {
+class PositionScreen extends ConsumerStatefulWidget {
   const PositionScreen({super.key});
 
   @override
-  State<PositionScreen> createState() => _PositionScreenState();
+  ConsumerState<PositionScreen> createState() => _PositionScreenState();
 }
 
-class _PositionScreenState extends State<PositionScreen> {
+class _PositionScreenState extends ConsumerState<PositionScreen> {
   List<BluetoothDevice> _connectedDevices = [];
   StreamSubscription? _connectionEventSub;
 
@@ -138,11 +140,12 @@ class _PositionScreenState extends State<PositionScreen> {
     final showLeft = _connectedDevices.isNotEmpty;
     final showRight = _connectedDevices.length >= 2;
 
-    const double leftWeight  = 34.2;
-    const double rightWeight = 35.8;
-    final double total = showRight ? leftWeight + rightWeight : leftWeight;
-    final double leftPct  = leftWeight  / (leftWeight + rightWeight);
-    final double rightPct = rightWeight / (leftWeight + rightWeight);
+    final session = ref.watch(shoeSessionViewModelProvider);
+    final double leftWeight  = session.poidsTalon / 1000;   // g → kg
+    final double rightWeight = session.poidsAvantpied / 1000; // g → kg
+    final double total = leftWeight + rightWeight;
+    final double leftPct  = total > 0 ? leftWeight / total : 0.5;
+    final double rightPct = total > 0 ? rightWeight / total : 0.5;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
