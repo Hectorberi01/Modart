@@ -129,21 +129,30 @@ class AppBluetoothService {
   /// ------------------------------------------------------
 
   void _handleIncomingData(List<int> value) {
+    print("values : $value");
+
     // Try JSON first
     try {
       final decoded = utf8.decode(value);
+      print("decode : $decoded");
+
       final json = jsonDecode(decoded);
+      print("json : $json");
+
       shoeDataService.addSample(
         ShoeSample(
-          steps: json["pas"] as int,
-          angleX: (json["angle_x"] as num).toDouble(),
-          angleY: (json["angle_y"] as num).toDouble(),
-          badPosition: json["mauvais_positionnement"] as bool,
+          steps: json["pas"] ?? 0,
+          angleX: double.parse(json["angle_x"].toString()),
+          angleY: double.parse(json["angle_y"].toString()),
+          badPosition: json["mauvais_positionnement"] ?? false,
           timestamp: DateTime.now(),
         ),
       );
+
       return;
-    } catch (_) {}
+    } catch (e) {
+      print("JSON parse error: $e");
+    }
 
     // Try binary format: int32 steps | float32 angle_x | float32 angle_y | uint8 bad_pos (13 bytes)
     if (value.length >= 13) {
