@@ -7,6 +7,8 @@ import '../widgets/mesh_gradient_background.dart';
 import '../widgets/narrative_card.dart';
 import '../widgets/mlpi_slider.dart';
 import '../providers.dart';
+import '../models/session_features.dart';
+import 'session_summary_screen_extensions.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SessionSummaryScreen — Uses real session data from Riverpod
@@ -47,6 +49,22 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
     final hotspotScore = (100 - postureScore) * 0.7;
     // MLPI (derived from posture)
     final mlpi = (postureScore - 50) / 100;
+
+    // Build SessionFeatures for recommendations
+    final _features = SessionFeatures(
+      foot: 'left',
+      hotspotScore: hotspotScore,
+      mlpiMean: mlpi,
+      mlpiStd: 0.1,
+      rollScoreMean: rollScore,
+      cadenceMean: cadence,
+      speedMean: distance > 0 ? (distance / 1000) / 0.5 : 0,
+      asymmetryPct: asymmetryPct,
+      stabilityScore: stabilityScore,
+      attackHeelPct: 40,
+      attackMidPct: 30,
+      attackForePct: 30,
+    );
 
     final int displayScore = globalScore.round().clamp(0, 100);
     final BIState scoreState = displayScore >= 70 ? BIState.normal : displayScore >= 50 ? BIState.warning : BIState.alert;
@@ -135,6 +153,10 @@ class _SessionSummaryScreenState extends ConsumerState<SessionSummaryScreen> {
 
               // ── Narrative
               NarrativeCard(narratives: narratives, accentColor: SmartSoleColors.colorForState(scoreState)),
+              const SizedBox(height: 20),
+
+              // ── Recommandations dynamiques
+              SessionRecommendations(features: _features),
               const SizedBox(height: 20),
 
               // ── Pain slider
