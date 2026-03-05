@@ -20,11 +20,24 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'modar.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) {
         return db.execute(
-          'CREATE TABLE sessions(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, date TEXT, time TEXT, duration TEXT, distance TEXT, avgSpeed TEXT)',
+          'CREATE TABLE sessions('
+          'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+          'title TEXT, date TEXT, time TEXT, duration TEXT, '
+          'distance TEXT, avgSpeed TEXT, '
+          'steps INTEGER DEFAULT 0, '
+          'postureScore REAL DEFAULT 0, '
+          'globalScore REAL DEFAULT 0)',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE sessions ADD COLUMN steps INTEGER DEFAULT 0');
+          await db.execute('ALTER TABLE sessions ADD COLUMN postureScore REAL DEFAULT 0');
+          await db.execute('ALTER TABLE sessions ADD COLUMN globalScore REAL DEFAULT 0');
+        }
       },
     );
   }
@@ -45,5 +58,10 @@ class DatabaseService {
   Future<void> deleteSession(int id) async {
     final db = await database;
     await db.delete('sessions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> deleteAllSessions() async {
+    final db = await database;
+    await db.delete('sessions');
   }
 }

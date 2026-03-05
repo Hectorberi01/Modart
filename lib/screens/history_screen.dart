@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:modar/providers.dart';
 import '../models/session.dart';
-import '../services/database_service.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
 const _kAccent = Color(0xFF2F80ED);
@@ -17,36 +17,20 @@ List<BoxShadow> _cardShadow() => [
       ),
     ];
 
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionsAsync = ref.watch(sessionsProvider);
 
-class _HistoryScreenState extends State<HistoryScreen> {
-  late Future<List<Session>> _sessionsFuture;
-  final DatabaseService _dbService = DatabaseService();
-
-  @override
-  void initState() {
-    super.initState();
-    _sessionsFuture = _dbService.getSessions();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kBg,
         title: const Text(
           'Historique',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: _kPrimary,
-          ),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
         ),
         actions: [
           Container(
@@ -57,44 +41,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
               boxShadow: _cardShadow(),
             ),
             child: IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.tune_rounded, size: 20, color: _kPrimary),
+              onPressed: () => ref.invalidate(sessionsProvider),
+              icon: const Icon(Icons.refresh_rounded, size: 20, color: _kPrimary),
             ),
           ),
         ],
       ),
-      body: FutureBuilder<List<Session>>(
-        future: _sessionsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2),
-            );
-          }
-
-          final sessions = snapshot.data ?? [];
-
-          return CustomScrollView(
-            slivers: [
+      body: sessionsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2),
+        ),
+        error: (e, _) => Center(
+          child: Text('Erreur : $e', style: const TextStyle(color: _kTextSecondary)),
+        ),
+        data: (sessions) => CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _SummaryCard(sessions: sessions),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            if (sessions.isEmpty)
+              const SliverFillRemaining(child: _EmptyState())
+            else
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: _SummaryCard(sessions: sessions),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                  child: _SessionList(sessions: sessions),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              if (sessions.isEmpty)
-                const SliverFillRemaining(child: _EmptyState())
-              else
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    child: _SessionList(sessions: sessions),
-                  ),
-                ),
-            ],
-          );
-        },
+          ],
+        ),
       ),
     );
   }
@@ -106,12 +85,12 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double totalDistance = 0;
-    for (var s in sessions) {
+    double totalDistanceKm = 0;
+    int totalSteps = 0;
+    for (final s in sessions) {
       final parts = s.distance.split(' ');
-      if (parts.isNotEmpty) {
-        totalDistance += double.tryParse(parts[0]) ?? 0;
-      }
+      totalDistanceKm += double.tryParse(parts[0]) ?? 0;
+      totalSteps += s.steps;
     }
 
     return Container(
@@ -135,7 +114,7 @@ class _SummaryCard extends StatelessWidget {
           Expanded(
             child: _SummaryStat(
               icon: Icons.route_rounded,
-              value: totalDistance.toStringAsFixed(1),
+              value: totalDistanceKm.toStringAsFixed(1),
               label: 'km total',
               color: _kSuccess,
             ),
@@ -143,9 +122,11 @@ class _SummaryCard extends StatelessWidget {
           Container(width: 1, height: 40, color: const Color(0xFFE5E7EB)),
           Expanded(
             child: _SummaryStat(
-              icon: Icons.timer_rounded,
-              value: '${sessions.length * 40}',
-              label: 'min estimé',
+              icon: Icons.directions_walk_rounded,
+              value: totalSteps >= 1000
+                  ? '${(totalSteps / 1000).toStringAsFixed(1)}k'
+                  : '$totalSteps',
+              label: 'pas total',
               color: const Color(0xFFF59E0B),
             ),
           ),
@@ -176,11 +157,7 @@ class _SummaryStat extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: _kPrimary,
-          ),
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
         ),
         const SizedBox(height: 2),
         Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
@@ -206,12 +183,7 @@ class _SessionList extends StatelessWidget {
           for (int i = 0; i < sessions.length; i++) ...[
             _SessionRow(session: sessions[i]),
             if (i < sessions.length - 1)
-              const Divider(
-                height: 1,
-                indent: 72,
-                endIndent: 16,
-                color: Color(0xFFF3F4F6),
-              ),
+              const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFF3F4F6)),
           ],
         ],
       ),
@@ -222,6 +194,12 @@ class _SessionList extends StatelessWidget {
 class _SessionRow extends StatelessWidget {
   const _SessionRow({required this.session});
   final Session session;
+
+  Color get _scoreColor {
+    if (session.globalScore >= 70) return _kSuccess;
+    if (session.globalScore >= 40) return const Color(0xFFF59E0B);
+    return const Color(0xFFEB5757);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,36 +223,40 @@ class _SessionRow extends StatelessWidget {
               children: [
                 Text(
                   session.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: _kPrimary,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _kPrimary),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '${session.date}  ·  ${session.time}  ·  ${session.duration}',
                   style: const TextStyle(fontSize: 12, color: _kTextSecondary),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  '${session.steps} pas  ·  ${session.distance}',
+                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                session.distance,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: _kPrimary,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _scoreColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${session.globalScore.toStringAsFixed(0)}%',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _scoreColor),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 session.avgSpeed,
-                style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+                style: const TextStyle(fontSize: 11, color: _kTextSecondary),
               ),
             ],
           ),
@@ -308,11 +290,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 20),
           const Text(
             'Aucune session',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: _kPrimary,
-            ),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _kPrimary),
           ),
           const SizedBox(height: 6),
           const Text(

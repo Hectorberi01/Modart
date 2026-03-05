@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import '../services/bluetooth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:modar/providers.dart';
+//import '../services/bluetooth_service.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
 const _kAccent = Color(0xFF2F80ED);
@@ -10,28 +12,29 @@ const _kBg = Color(0xFFF7F8FA);
 const _kTextSecondary = Color(0xFF6B7280);
 
 List<BoxShadow> _cardShadow() => [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.06),
-        blurRadius: 20,
-        offset: const Offset(0, 4),
-      ),
-    ];
+  BoxShadow(
+    color: Colors.black.withValues(alpha: 0.06),
+    blurRadius: 20,
+    offset: const Offset(0, 4),
+  ),
+];
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key, required this.onManageBluetooth});
   final VoidCallback onManageBluetooth;
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  final AppBluetoothService _bluetoothService = AppBluetoothService();
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  //final AppBluetoothService _bluetoothService = AppBluetoothService();
   bool _autoConnect = true;
   bool _hapticFeedback = true;
 
   @override
   Widget build(BuildContext context) {
+    final bluetoothService = ref.watch(bluetoothServiceProvider);
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
@@ -54,17 +57,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsCard(
             children: [
               StreamBuilder<BluetoothAdapterState>(
-                stream: _bluetoothService.adapterState,
+                stream: bluetoothService.adapterState,
                 initialData: BluetoothAdapterState.unknown,
                 builder: (context, snapshot) {
                   final isOn = snapshot.data == BluetoothAdapterState.on;
                   return _SettingsRow(
-                    icon: isOn
-                        ? Icons.bluetooth_connected_rounded
-                        : Icons.bluetooth_disabled_rounded,
-                    iconBg: isOn
-                        ? _kSuccess.withValues(alpha: 0.12)
-                        : Colors.grey.withValues(alpha: 0.10),
+                    icon:
+                        isOn
+                            ? Icons.bluetooth_connected_rounded
+                            : Icons.bluetooth_disabled_rounded,
+                    iconBg:
+                        isOn
+                            ? _kSuccess.withValues(alpha: 0.12)
+                            : Colors.grey.withValues(alpha: 0.10),
                     iconColor: isOn ? _kSuccess : _kTextSecondary,
                     title: 'Bluetooth',
                     trailing: Row(
@@ -214,27 +219,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _confirmReset(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Effacer les données',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Toutes les sessions seront supprimées définitivement.\nCette action est irréversible.',
-          style: TextStyle(color: _kTextSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Effacer les données',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'Toutes les sessions seront supprimées définitivement.\nCette action est irréversible.',
+              style: TextStyle(color: _kTextSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await ref.read(databaseServiceProvider).deleteAllSessions();
+                  ref.invalidate(sessionsProvider);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Toutes les sessions ont été supprimées.'),
+                        backgroundColor: _kDanger,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Effacer', style: TextStyle(color: _kDanger)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Effacer', style: TextStyle(color: _kDanger)),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -335,7 +358,10 @@ class _SettingsRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: const TextStyle(fontSize: 12, color: _kTextSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: _kTextSecondary,
+                      ),
                     ),
                   ],
                 ],

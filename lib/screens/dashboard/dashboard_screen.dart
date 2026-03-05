@@ -1,60 +1,74 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../models/session.dart';
-import '../../services/database_service.dart';
-import 'package:intl/intl.dart';
-import '../bluetooth_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:intl/intl.dart';
+import 'package:modar/models/session.dart';
+import 'package:modar/providers.dart';
 import 'dashboard_constants.dart';
 import 'widgets/hero_metric_card.dart';
 import 'widgets/speed_gauge_card.dart';
 import 'widgets/small_metric_card.dart';
-import 'widgets/balance_card.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
-  bool _btConnected = false;
-  StreamSubscription? _btSub;
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  bool _saving = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty;
-    _btSub = FlutterBluePlus.events.onConnectionStateChanged.listen((_) {
-      if (mounted) {
-        setState(() => _btConnected = FlutterBluePlus.connectedDevices.isNotEmpty);
-      }
-    });
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  @override
-  void dispose() {
-    _btSub?.cancel();
-    super.dispose();
-  }
+  Future<void> _finishSession() async {
+    final session = ref.read(shoeSessionViewModelProvider);
+    if (session.steps == 0) {
+      ref.read(shoeSessionViewModelProvider.notifier).resetSession();
+      return;
+    }
 
-  Future<void> _saveSession(BuildContext context) async {
+    setState(() => _saving = true);
+
+    final shoeService = ref.read(shoeDataServiceProvider);
+    final btService = ref.read(bluetoothServiceProvider);
+    final db = ref.read(databaseServiceProvider);
     final now = DateTime.now();
-    final session = Session(
+
+    final distanceKm = session.distance / 1000;
+    final distanceStr = '${distanceKm.toStringAsFixed(2)} km';
+    final durationStr = _formatDuration(shoeService.sessionDuration);
+
+    final dbSession = Session(
       title: 'Session ${DateFormat('HH:mm').format(now)}',
-      date: DateFormat('dd MMMM yyyy').format(now),
+      date: DateFormat('dd MMMM yyyy', 'fr').format(now),
       time: DateFormat('HH:mm').format(now),
-      duration: '12:34',
-      distance: '2.4 km',
-      avgSpeed: '8.5 km/h',
+      duration: durationStr,
+      distance: distanceStr,
+      avgSpeed: '${session.cadence.toStringAsFixed(0)} pas/min',
+      steps: session.steps,
+      postureScore: session.postureScore,
+      globalScore: session.globalScore,
     );
-    await DatabaseService().insertSession(session);
-    if (context.mounted) {
+
+    await db.insertSession(dbSession);
+
+    // Déconnecter le device BT + annuler les subscriptions + arrêter la simulation
+    await btService.disconnectAll();
+
+    ref.read(shoeSessionViewModelProvider.notifier).resetSession();
+    ref.invalidate(sessionsProvider);
+
+    if (mounted) {
+      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Session enregistrée avec succès'),
-          backgroundColor: kDashPrimary,
+          content: const Text('Session enregistrée avec succès !'),
+          backgroundColor: kDashSuccess,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
@@ -65,6 +79,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(shoeSessionViewModelProvider);
+    final bluetoothService = ref.watch(bluetoothServiceProvider);
+
+    final distanceValue = session.distance >= 1000
+        ? (session.distance / 1000).toStringAsFixed(2)
+        : session.distance.toStringAsFixed(0);
+    final distanceUnit = session.distance >= 1000 ? 'km' : 'm';
+
     return Scaffold(
       backgroundColor: kDashBg,
       appBar: AppBar(
@@ -92,67 +114,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BluetoothScreen(
-                  onContinue: () => Navigator.pop(context),
-                ),
-              ),
-            ),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
+          if (session.badPosition)
+            Container(
+              margin: const EdgeInsets.only(right: 4),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: _btConnected
-                    ? kDashSuccess.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.1),
+                color: const Color(0xFFEB5757).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.bluetooth,
-                    size: 14,
-                    color: _btConnected ? kDashSuccess : kDashTextSec,
-                  ),
-                  const SizedBox(width: 4),
+                  Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFEB5757)),
+                  SizedBox(width: 4),
                   Text(
-                    _btConnected ? 'Connecté' : 'Déconnecté',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: _btConnected ? kDashSuccess : kDashTextSec,
-                    ),
+                    'Posture',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFEB5757)),
                   ),
                 ],
               ),
             ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: kDashPrimary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.timer_outlined, size: 13, color: kDashPrimary),
-                SizedBox(width: 4),
-                Text(
-                  '00:12:34',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: kDashPrimary,
-                  ),
+          StreamBuilder<BluetoothAdapterState>(
+            stream: bluetoothService.adapterState,
+            initialData: BluetoothAdapterState.unknown,
+            builder: (context, snap) {
+              final connected = FlutterBluePlus.connectedDevices.isNotEmpty;
+              final btOn = snap.data == BluetoothAdapterState.on;
+              final label = connected ? 'Connecté' : (btOn ? 'BT actif' : 'Déconnecté');
+              final color = connected ? kDashSuccess : (btOn ? kDashAccent : kDashTextSec);
+              return Container(
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bluetooth, size: 14, color: color),
+                    const SizedBox(width: 4),
+                    Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -161,53 +167,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           children: [
             HeroMetricCard(
-              label: 'Distance parcourue',
-              value: '2.4',
-              unit: 'km',
-              icon: Icons.route_outlined,
+              label: 'Pas total',
+              value: '${session.steps}',
+              unit: 'pas',
+              icon: Icons.directions_walk,
               color: kDashAccent,
             ),
             const SizedBox(height: 14),
-            const SpeedGaugeCard(
-              label: 'Vitesse actuelle',
-              value: '8.5',
-              unit: 'km/h',
-              speedFraction: 0.57,
+            SpeedGaugeCard(
+              label: 'Cadence',
+              value: session.cadence.toStringAsFixed(0),
+              unit: 'pas/min',
+              speedFraction: (session.cadence / 200).clamp(0.0, 1.0),
             ),
             const SizedBox(height: 14),
-            const Row(
+            Row(
               children: [
                 Expanded(
                   child: SmallMetricCard(
-                    label: 'Pied gauche',
-                    value: '37.5',
-                    unit: 'kg',
-                    icon: Icons.arrow_back,
+                    label: 'Distance',
+                    value: distanceValue,
+                    unit: distanceUnit,
+                    icon: Icons.route,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: SmallMetricCard(
-                    label: 'Pied droit',
-                    value: '34.8',
-                    unit: 'kg',
-                    icon: Icons.arrow_forward,
+                    label: 'Score posture',
+                    value: session.postureScore.toStringAsFixed(0),
+                    unit: '%',
+                    icon: Icons.self_improvement,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            const BalanceCard(
-              totalWeight: '72.3',
-              leftPercent: 0.52,
-              rightPercent: 0.48,
-            ),
-            const SizedBox(height: 14),
             HeroMetricCard(
-              label: 'Temps écoulé',
-              value: '12:34',
-              unit: 'min',
-              icon: Icons.timer_outlined,
+              label: 'Score global',
+              value: session.globalScore.toStringAsFixed(1),
+              unit: '%',
+              icon: Icons.star_outline,
               color: const Color(0xFF7C3AED),
             ),
             const SizedBox(height: 32),
@@ -215,25 +215,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () => _saveSession(context),
+                onPressed: _saving ? null : _finishSession,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kDashPrimary,
+                  disabledBackgroundColor: kDashPrimary.withValues(alpha: 0.5),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.stop_circle_outlined, size: 20),
-                    SizedBox(width: 10),
-                    Text(
-                      'Terminer la session',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.stop_circle_outlined, size: 20),
+                          SizedBox(width: 10),
+                          Text('Terminer la session', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
               ),
             ),
           ],

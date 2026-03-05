@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:modar/models/ShoeSample.dart';
 import 'package:modar/services/ShoeDataService.dart';
@@ -16,26 +17,31 @@ enum ScanStartResult {
 }
 
 class AppBluetoothService {
-  // Singleton
-  static final AppBluetoothService _instance = AppBluetoothService._internal();
-  factory AppBluetoothService() => _instance;
-  AppBluetoothService._internal();
+  final ShoeDataService shoeDataService;
 
-  // Services
-  final ShoeDataService _shoeDataService = ShoeDataService();
+  AppBluetoothService(this.shoeDataService);
+
   final Random _random = Random();
+
   Timer? _simulationTimer;
   int _steps = 0;
 
-  Stream<ShoeSample> get shoeStream => _shoeDataService.stream;
+  bool _simulationStarted = false;
 
-  // Observable state
+  BluetoothDevice? _connectedDevice;
+  final List<StreamSubscription> _charSubscriptions = [];
+
+  /// Streams exposés
   Stream<List<ScanResult>> get scanResults => FlutterBluePlus.scanResults;
+
   Stream<bool> get isScanning => FlutterBluePlus.isScanning;
+
   Stream<BluetoothAdapterState> get adapterState =>
       FlutterBluePlus.adapterState;
 
-  bool _simulationStarted = false;
+  /// ------------------------------------------------------
+  /// SCAN BLUETOOTH
+  /// ------------------------------------------------------
 
   Future<ScanStartResult> startScan() async {
     print("--- AppBluetoothService: Starting scan sequence ---");
@@ -59,8 +65,6 @@ class AppBluetoothService {
       }
     }
 
-    //iOS : ne demande PAS Permission.bluetooth ici
-
     if (await FlutterBluePlus.isSupported == false) {
       return ScanStartResult.bluetoothNotSupported;
     }
@@ -80,78 +84,100 @@ class AppBluetoothService {
     await FlutterBluePlus.stopScan();
   }
 
-  /*Future<void> connect(BluetoothDevice device) async {
-    print("--- AppBluetoothService: Connecting to ${device.remoteId} ---");
-    try {
-      await device.connect(license: License.free, autoConnect: false);
-      print("--- AppBluetoothService: Successfully connected ---");
-    } catch (e) {
-      print("--- AppBluetoothService: Connection error: $e ---");
-    }
-  }*/
+  /// ------------------------------------------------------
+  /// CONNECTION DEVICE
+  /// ------------------------------------------------------
 
   Future<void> connect(BluetoothDevice device) async {
     print("--- Connecting to ${device.remoteId} ---");
 
     try {
       await device.connect(license: License.free, autoConnect: false);
+      _connectedDevice = device;
 
       print("--- Connected successfully ---");
 
-      // 🔥 Découverte des services
-      List<BluetoothService> services = await device.discoverServices();
+      final services = await device.discoverServices();
 
-      for (BluetoothService service in services) {
+      /*
+      for (final service in services) {
         print("Service found: ${service.uuid}");
 
-        for (BluetoothCharacteristic characteristic
-            in service.characteristics) {
+        for (final characteristic in service.characteristics) {
           print("Characteristic found: ${characteristic.uuid}");
 
-          // Si la caractéristique supporte notifications
           if (characteristic.properties.notify) {
-            print("Enabling notifications on ${characteristic.uuid}");
+            print("Enabling notifications");
 
             await characteristic.setNotifyValue(true);
 
-            characteristic.onValueReceived.listen((value) {
-              //print("📡 Live data received: $value");
-
-              // Si données binaires → convertir en string
-              /*final decoded = String.fromCharCodes(value);
-              print("Decoded: $decoded");
-              final json = jsonDecode(decoded);
-
-              final sample = ShoeSample(
-                steps: json["pas"],
-                angleX: json["angle_x"],
-                angleY: json["angle_y"],
-                badPosition: json["mauvais_positionnement"],
-                timestamp: DateTime.now(),
-              );
-
-              _shoeDataService.addSample(sample);*/
-              if (!_simulationStarted) {
-                _simulationStarted = true;
-                startRandomSimulation();
-              }
+            /*final sub = characteristic.onValueReceived.listen((value) {
+              _handleIncomingData(value);
             });
+            _charSubscriptions.add(sub);*/
+            startRandomSimulation();
           }
         }
-      }
+      }*/
+
+      startRandomSimulation();
     } catch (e) {
       print("Connection error: $e");
     }
   }
 
-  Future<void> disconnect(BluetoothDevice device) async {
-    await device.disconnect();
+  /// ------------------------------------------------------
+  /// DATA HANDLING
+  /// ------------------------------------------------------
+
+  void _handleIncomingData(List<int> value) {
+    // Try JSON first
+    try {
+      final decoded = utf8.decode(value);
+      final json = jsonDecode(decoded);
+      shoeDataService.addSample(
+        ShoeSample(
+          steps: json["pas"] as int,
+          angleX: (json["angle_x"] as num).toDouble(),
+          angleY: (json["angle_y"] as num).toDouble(),
+          badPosition: json["mauvais_positionnement"] as bool,
+          timestamp: DateTime.now(),
+        ),
+      );
+      return;
+    } catch (_) {}
+
+    // Try binary format: int32 steps | float32 angle_x | float32 angle_y | uint8 bad_pos (13 bytes)
+    if (value.length >= 13) {
+      try {
+        final data = ByteData.sublistView(Uint8List.fromList(value));
+        shoeDataService.addSample(
+          ShoeSample(
+            steps: data.getInt32(0, Endian.little),
+            angleX: data.getFloat32(4, Endian.little),
+            angleY: data.getFloat32(8, Endian.little),
+            badPosition: data.getUint8(12) != 0,
+            timestamp: DateTime.now(),
+          ),
+        );
+        return;
+      } catch (_) {}
+    }
+
+    final hex = value.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    print("BLE unknown format [${value.length} bytes]: $hex");
   }
+
+  /// ------------------------------------------------------
+  /// SIMULATION MODE (DEBUG)
+  /// ------------------------------------------------------
 
   void startRandomSimulation() {
     if (_simulationTimer != null) return;
 
     print("Starting random simulation");
+
+    _simulationStarted = true;
 
     _simulationTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       _steps += _random.nextInt(2);
@@ -164,7 +190,42 @@ class AppBluetoothService {
         timestamp: DateTime.now(),
       );
 
-      _shoeDataService.addSample(sample);
+      shoeDataService.addSample(sample);
     });
+  }
+
+  void stopSimulation() {
+    _simulationTimer?.cancel();
+    _simulationTimer = null;
+    _simulationStarted = false;
+  }
+
+  /// ------------------------------------------------------
+  /// DISCONNECT
+  /// ------------------------------------------------------
+
+  Future<void> disconnectAll() async {
+    stopSimulation();
+    for (final sub in _charSubscriptions) {
+      await sub.cancel();
+    }
+    _charSubscriptions.clear();
+    if (_connectedDevice != null) {
+      await _connectedDevice!.disconnect();
+      _connectedDevice = null;
+    }
+  }
+
+  Future<void> disconnect(BluetoothDevice device) async {
+    stopSimulation();
+    await device.disconnect();
+  }
+
+  /// ------------------------------------------------------
+  /// CLEANUP
+  /// ------------------------------------------------------
+
+  void dispose() {
+    disconnectAll();
   }
 }

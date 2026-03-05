@@ -29,6 +29,11 @@ class ShoeDataService {
     print("score global de la session: ${computeGlobalScore()}");
   }
 
+  Duration get sessionDuration {
+    if (_samples.length < 2) return Duration.zero;
+    return _samples.last.timestamp.difference(_samples.first.timestamp);
+  }
+
   void resetSession() {
     _samples.clear();
   }
