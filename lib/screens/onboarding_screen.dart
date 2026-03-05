@@ -315,7 +315,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           shaderCallback:
               (bounds) => SmartSoleColors.heroGradient.createShader(bounds),
           child: Text(
-            'SmartSole',
+            'Smartsole',
             style: textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: -1.2,

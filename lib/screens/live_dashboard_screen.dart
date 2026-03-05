@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../theme/app_theme.dart';
+import 'bluetooth_screen.dart';
 import '../widgets/glass_bento_card.dart';
 import '../widgets/mesh_gradient_background.dart';
 import '../widgets/pressure_map_painter.dart';
@@ -11,14 +13,17 @@ import '../models/pressure_data.dart';
 import '../services/mock_data_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LiveDashboardScreen — L'écran central SmartSole
+// LiveDashboardScreen — L'écran central Smartsole
 //
 // Bento Grid : carte pression (60%) + 4 KPI cards (40%).
 // Top bar BLE + batterie + durée + pas. Micro-phrase BI si hotspot détecté.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class LiveDashboardScreen extends StatefulWidget {
-  const LiveDashboardScreen({super.key});
+  const LiveDashboardScreen({super.key, this.showBlePrompt = false});
+
+  /// Affiché une seule fois après connexion/inscription si BLE est déconnecté.
+  final bool showBlePrompt;
 
   @override
   State<LiveDashboardScreen> createState() => _LiveDashboardScreenState();
@@ -46,7 +51,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   Timer? _hotspotTimer;
 
   // BLE status (mock)
-  final bool _bleConnected = true;
+  final bool _bleConnected = false; // Par défaut faux pour simuler
   final int _batteryLeft = 78;
   final int _batteryRight = 82;
 
@@ -55,6 +60,47 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     super.initState();
     _leftPressure = PressureData.zero;
     _rightPressure = PressureData.zero;
+
+    if (widget.showBlePrompt) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkBleAndShowModal();
+      });
+    }
+  }
+
+  /// Vérifie l'état BLE réel et affiche la modale si déconnecté.
+  void _checkBleAndShowModal() {
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      final connected = FlutterBluePlus.connectedDevices;
+      if (connected.isEmpty) _showBleModal();
+    });
+  }
+
+  void _showBleModal() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => _BleConnectModal(
+        onLater: () => Navigator.pop(ctx),
+        onConnect: () {
+          Navigator.pop(ctx);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (c) =>
+                  BluetoothScreen(onContinue: () => Navigator.pop(c)),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -65,14 +111,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   }
 
   void _toggleSession() {
-    setState(() {
-      _isSessionActive = !_isSessionActive;
-      if (_isSessionActive) {
+    if (_isSessionActive) {
+      setState(() => _isSessionActive = false);
+      _stopSession();
+    } else {
+      setState(() {
+        _isSessionActive = true;
         _startSession();
-      } else {
-        _stopSession();
-      }
-    });
+      });
+    }
   }
 
   void _startSession() {
@@ -93,7 +140,54 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   void _stopSession() {
     _sessionTimer?.cancel();
     _sessionTimer = null;
-    // TODO: naviguer vers SessionSummaryScreen
+    _navigateToSummaryWithTransition();
+  }
+
+  void _navigateToSummaryWithTransition() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (ctx, anim1, anim2) {
+        return FadeTransition(
+          opacity: anim1,
+          child: Scaffold(
+            backgroundColor: SmartSoleColors.darkBg,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: Image.asset(
+                      'assets/images/walk1.gif',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Analyse en cours...',
+                    style: TextStyle(
+                      fontFamily: 'Articulat CF',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: SmartSoleColors.textTertiaryDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    Future.delayed(const Duration(milliseconds: 1400), () {
+      if (!mounted) return;
+      Navigator.pop(context);
+      Navigator.pushNamed(context, '/summary');
+    });
   }
 
   void _updateLiveData() {
@@ -605,6 +699,138 @@ class _BatteryChip extends StatelessWidget {
               color: color,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Bluetooth Connect Modal ──────────────────────────────────────────────────
+
+class _BleConnectModal extends StatelessWidget {
+  const _BleConnectModal({required this.onLater, required this.onConnect});
+
+  final VoidCallback onLater;
+  final VoidCallback onConnect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: SmartSoleColors.darkSurface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: SmartSoleColors.biWarning.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: SmartSoleColors.biWarning.withValues(alpha: 0.25),
+                width: 1.5,
+              ),
+            ),
+            child: const Icon(
+              Icons.bluetooth_searching_rounded,
+              size: 32,
+              color: SmartSoleColors.biWarning,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Connecter vos semelles',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Articulat CF',
+                color: SmartSoleColors.textPrimaryDark,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'Connectez vos semelles Smartsole via Bluetooth pour démarrer une session d\'analyse.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Articulat CF',
+                color: SmartSoleColors.textSecondaryDark,
+                fontSize: 13,
+                height: 1.55,
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: onLater,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                    ),
+                    child: const Text(
+                      'Plus tard',
+                      style: TextStyle(
+                        fontFamily: 'Articulat CF',
+                        color: SmartSoleColors.textSecondaryDark,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onConnect,
+                    icon: const Icon(Icons.bluetooth, size: 18),
+                    label: const Text(
+                      'Connecter',
+                      style: TextStyle(
+                        fontFamily: 'Articulat CF',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SmartSoleColors.biNormal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

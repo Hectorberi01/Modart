@@ -333,10 +333,81 @@ class _RegistrationJourneyScreenState extends State<RegistrationJourneyScreen>
   }
 
   void _navigateHome() {
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      '/home',
-      (route) => false,
-      arguments: _profile.profileType,
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: SmartSoleColors.darkBg,
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (ctx, animation, secondaryAnimation) {
+          Future.delayed(const Duration(milliseconds: 2800), () {
+            if (ctx.mounted) {
+              Navigator.of(ctx).pushNamedAndRemoveUntil(
+                '/home',
+                (route) => false,
+                arguments: {
+                  'profileType': _profile.profileType,
+                  'showBlePrompt': true,
+                },
+              );
+            }
+          });
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            child: Scaffold(
+              backgroundColor: SmartSoleColors.darkBg,
+              body: SafeArea(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 32),
+                      SvgPicture.asset(
+                        'assets/images/login_or_singn_in_succes.svg',
+                        width: 300,
+                        height: 260,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 36),
+                      const Text(
+                        'Inscription réussie !',
+                        style: TextStyle(
+                          fontFamily: 'Articulat CF',
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Bienvenue sur Smartsole',
+                        style: TextStyle(
+                          fontFamily: 'Articulat CF',
+                          fontSize: 15,
+                          color: Colors.white60,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      SvgPicture.asset(
+                        'assets/images/loading.svg',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -465,7 +536,7 @@ class _RegistrationJourneyScreenState extends State<RegistrationJourneyScreen>
       5 => _buildStepConsentements(isDark),
       6 => _buildTransitionSuccess(
           isDark: isDark,
-          svgAsset: 'assets/images/login_or_sing_in_succes.svg',
+          svgAsset: 'assets/images/transition_screen_image2.svg',
           title: 'Compte créé !',
           subtitle: 'Vos données sont prêtes. Bonne marche !',
           buttonLabel: "Commencer l'expérience",
@@ -501,7 +572,7 @@ class _RegistrationJourneyScreenState extends State<RegistrationJourneyScreen>
       7 => _buildStepConsentements(isDark),
       8 => _buildTransitionSuccess(
           isDark: isDark,
-          svgAsset: 'assets/images/login_or_sing_in_succes.svg',
+          svgAsset: 'assets/images/transition_screen_image2.svg',
           title: 'Compte créé !',
           subtitle: 'Le suivi de votre enfant est prêt.',
           buttonLabel: 'Accéder au suivi',
@@ -526,7 +597,7 @@ class _RegistrationJourneyScreenState extends State<RegistrationJourneyScreen>
       4 => _buildStepConsentements(isDark),
       5 => _buildTransitionSuccess(
           isDark: isDark,
-          svgAsset: 'assets/images/login_or_sing_in_succes.svg',
+          svgAsset: 'assets/images/transition_screen_image2.svg',
           title: 'Accès Pro activé !',
           subtitle: 'Votre espace clinicien est prêt.',
           buttonLabel: 'Accéder au tableau de bord',
@@ -724,7 +795,7 @@ class _RegistrationJourneyScreenState extends State<RegistrationJourneyScreen>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Bienvenue, Professionnel de Santé',
+                  'Bienvenue, professionnel de santé',
                   textAlign: TextAlign.center,
                   style: tt.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,

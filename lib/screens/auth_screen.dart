@@ -95,10 +95,7 @@ class _AuthScreenState extends State<AuthScreen>
       }
     }
 
-    final success = await auth.signIn(
-      _emailCtrl.text.trim(),
-      _passCtrl.text,
-    );
+    final success = await auth.signIn(_emailCtrl.text.trim(), _passCtrl.text);
 
     if (success && mounted) {
       _showSuccessAndNavigate();
@@ -163,21 +160,21 @@ class _AuthScreenState extends State<AuthScreen>
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
-        barrierColor: Colors.black,
-        transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (ctx, animation, _) {
-          // Auto-navigate après 2.5s
-          Future.delayed(const Duration(milliseconds: 2500), () {
+        barrierColor: SmartSoleColors.darkBg,
+        transitionDuration: const Duration(milliseconds: 500),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (ctx, animation, secondaryAnimation) {
+          Future.delayed(const Duration(milliseconds: 2800), () {
             if (ctx.mounted) {
               Navigator.of(ctx).pushNamedAndRemoveUntil(
                 '/home',
                 (route) => false,
-                arguments: _type,
+                arguments: {'profileType': _type, 'showBlePrompt': true},
               );
             }
           });
           return FadeTransition(
-            opacity: animation,
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
             child: Scaffold(
               backgroundColor: SmartSoleColors.darkBg,
               body: SafeArea(
@@ -185,35 +182,47 @@ class _AuthScreenState extends State<AuthScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SvgPicture.asset(
-                        'assets/images/login_or_sing_in_succes.svg',
-                        width: 280,
-                        height: 280,
+                      // Logo en haut
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 32),
+                      // Illustration principale
+                      Image.asset(
+                        'assets/images/walk1.gif',
+                        width: 300,
+                        height: 260,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 36),
                       Text(
                         'Connexion réussie !',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontFamily: 'Articulat CF',
                           fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Text(
-                        'Bienvenue sur SmartSole',
-                        style: TextStyle(
+                        'Bienvenue sur Smartsole',
+                        style: const TextStyle(
                           fontFamily: 'Articulat CF',
-                          fontSize: 16,
-                          color: Colors.white70,
+                          fontSize: 15,
+                          color: Colors.white60,
                         ),
                       ),
                       const SizedBox(height: 40),
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFFF97316),
-                        ),
+                      // Loader SVG
+                      SvgPicture.asset(
+                        'assets/images/loading.svg',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.contain,
                       ),
                     ],
                   ),
@@ -304,20 +313,11 @@ class _AuthScreenState extends State<AuthScreen>
 
     return Column(
       children: [
-        Container(
+        Image.asset(
+          'assets/images/logo.png',
           width: 72,
           height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: SmartSoleColors.heroGradient,
-            boxShadow: [
-              BoxShadow(
-                color: SmartSoleColors.biTeal.withValues(alpha: 0.30),
-                blurRadius: 24,
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.white, size: 34),
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 20),
         Text(
@@ -339,9 +339,10 @@ class _AuthScreenState extends State<AuthScreen>
           sub,
           textAlign: TextAlign.center,
           style: tt.bodyMedium?.copyWith(
-            color: isDark
-                ? SmartSoleColors.textSecondaryDark
-                : SmartSoleColors.textSecondaryLight,
+            color:
+                isDark
+                    ? SmartSoleColors.textSecondaryDark
+                    : SmartSoleColors.textSecondaryLight,
           ),
         ),
       ],
@@ -355,14 +356,16 @@ class _AuthScreenState extends State<AuthScreen>
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.white.withValues(alpha: 0.75),
+          color:
+              isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.10)
-                : Colors.black.withValues(alpha: 0.07),
+            color:
+                isDark
+                    ? Colors.white.withValues(alpha: 0.10)
+                    : Colors.black.withValues(alpha: 0.07),
           ),
         ),
         child: Padding(
@@ -413,9 +416,10 @@ class _AuthScreenState extends State<AuthScreen>
               icon: Icon(
                 _obscurePass ? Icons.visibility_off : Icons.visibility,
                 size: 20,
-                color: isDark
-                    ? SmartSoleColors.textTertiaryDark
-                    : SmartSoleColors.textTertiaryLight,
+                color:
+                    isDark
+                        ? SmartSoleColors.textTertiaryDark
+                        : SmartSoleColors.textTertiaryLight,
               ),
               onPressed: () => setState(() => _obscurePass = !_obscurePass),
             ),
@@ -431,14 +435,13 @@ class _AuthScreenState extends State<AuthScreen>
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                _resetSent
-                    ? 'Email envoyé ✓'
-                    : 'Mot de passe oublié ?',
+                _resetSent ? 'Email envoyé ✓' : 'Mot de passe oublié ?',
                 style: TextStyle(
                   fontSize: 12,
-                  color: _resetSent
-                      ? SmartSoleColors.biSuccess
-                      : SmartSoleColors.biTeal,
+                  color:
+                      _resetSent
+                          ? SmartSoleColors.biSuccess
+                          : SmartSoleColors.biTeal,
                 ),
               ),
             ),
@@ -484,9 +487,10 @@ class _AuthScreenState extends State<AuthScreen>
               icon: Icon(
                 _obscurePass ? Icons.visibility_off : Icons.visibility,
                 size: 20,
-                color: isDark
-                    ? SmartSoleColors.textTertiaryDark
-                    : SmartSoleColors.textTertiaryLight,
+                color:
+                    isDark
+                        ? SmartSoleColors.textTertiaryDark
+                        : SmartSoleColors.textTertiaryLight,
               ),
               onPressed: () => setState(() => _obscurePass = !_obscurePass),
             ),
@@ -545,19 +549,23 @@ class _AuthScreenState extends State<AuthScreen>
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: filled
-                    ? SmartSoleColors.biTeal
-                    : (isDark
-                        ? Colors.white.withValues(alpha: 0.15)
-                        : Colors.black.withValues(alpha: 0.15)),
-                boxShadow: filled
-                    ? [
-                        BoxShadow(
-                          color: SmartSoleColors.biTeal.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                        ),
-                      ]
-                    : [],
+                color:
+                    filled
+                        ? SmartSoleColors.biTeal
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : Colors.black.withValues(alpha: 0.15)),
+                boxShadow:
+                    filled
+                        ? [
+                          BoxShadow(
+                            color: SmartSoleColors.biTeal.withValues(
+                              alpha: 0.4,
+                            ),
+                            blurRadius: 8,
+                          ),
+                        ]
+                        : [],
               ),
             );
           }),
@@ -583,11 +591,7 @@ class _AuthScreenState extends State<AuthScreen>
               isDark: isDark,
               isDelete: true,
             ),
-            _PinKey(
-              digit: '0',
-              onTap: () => _onPinDigit('0'),
-              isDark: isDark,
-            ),
+            _PinKey(digit: '0', onTap: () => _onPinDigit('0'), isDark: isDark),
             _PinKey(
               digit: '✓',
               onTap: _onPinConfirm,
@@ -621,8 +625,11 @@ class _AuthScreenState extends State<AuthScreen>
             ),
             child: Row(
               children: [
-                Icon(Icons.error_outline,
-                    size: 16, color: SmartSoleColors.biAlert),
+                Icon(
+                  Icons.error_outline,
+                  size: 16,
+                  color: SmartSoleColors.biAlert,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -673,33 +680,34 @@ class _AuthScreenState extends State<AuthScreen>
               borderRadius: BorderRadius.circular(28),
               onTap: auth.isLoading ? null : _authenticate,
               child: Center(
-                child: auth.isLoading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.login_rounded,
+                child:
+                    auth.isLoading
+                        ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
                             color: Colors.white,
-                            size: 20,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Se connecter',
-                            style: tt.labelLarge?.copyWith(
+                        )
+                        : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.login_rounded,
                               color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                              size: 20,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Se connecter',
+                              style: tt.labelLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
               ),
             ),
           ),
@@ -712,8 +720,8 @@ class _AuthScreenState extends State<AuthScreen>
 
   Widget _buildRegisterLink(TextTheme tt, bool isDark) {
     return TextButton(
-      onPressed: () =>
-          Navigator.of(context).pushReplacementNamed('/onboarding'),
+      onPressed:
+          () => Navigator.of(context).pushReplacementNamed('/onboarding'),
       child: RichText(
         text: TextSpan(
           style: TextStyle(
@@ -738,9 +746,10 @@ class _AuthScreenState extends State<AuthScreen>
   // ── Footer ────────────────────────────────────────────────────────────────
 
   Widget _buildFooter(TextTheme tt, bool isDark) {
-    final subtleColor = isDark
-        ? SmartSoleColors.textTertiaryDark
-        : SmartSoleColors.textTertiaryLight;
+    final subtleColor =
+        isDark
+            ? SmartSoleColors.textTertiaryDark
+            : SmartSoleColors.textTertiaryLight;
     return Column(
       children: [
         Text(
@@ -777,9 +786,10 @@ class _BackgroundMesh extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF0A0E1A), const Color(0xFF0D1B2A)]
-              : [const Color(0xFFF0FDF8), const Color(0xFFE0F2FE)],
+          colors:
+              isDark
+                  ? [const Color(0xFF0A0E1A), const Color(0xFF0D1B2A)]
+                  : [const Color(0xFFF0FDF8), const Color(0xFFE0F2FE)],
         ),
       ),
       child: Stack(
@@ -841,12 +851,14 @@ class _AuthField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.black.withValues(alpha: 0.10);
-    final fillColor = isDark
-        ? Colors.white.withValues(alpha: 0.05)
-        : Colors.white.withValues(alpha: 0.80);
+    final borderColor =
+        isDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : Colors.black.withValues(alpha: 0.10);
+    final fillColor =
+        isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.80);
 
     return TextFormField(
       controller: controller,
@@ -915,17 +927,19 @@ class _PinKey extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = isConfirm
-        ? SmartSoleColors.biTeal.withValues(alpha: 0.85)
-        : isDelete
+    final Color bg =
+        isConfirm
+            ? SmartSoleColors.biTeal.withValues(alpha: 0.85)
+            : isDelete
             ? SmartSoleColors.biAlert.withValues(alpha: 0.15)
             : (isDark
                 ? Colors.white.withValues(alpha: 0.07)
                 : Colors.black.withValues(alpha: 0.05));
 
-    final Color textColor = isConfirm
-        ? Colors.white
-        : isDelete
+    final Color textColor =
+        isConfirm
+            ? Colors.white
+            : isDelete
             ? SmartSoleColors.biAlert
             : (isDark ? Colors.white : const Color(0xFF111827));
 

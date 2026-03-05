@@ -7,6 +7,7 @@ import '../widgets/mlpi_slider.dart';
 import '../models/session_features.dart';
 import '../services/mock_data_service.dart';
 import '../services/narrative_service.dart';
+import 'session_summary_screen_extensions.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SessionSummaryScreen — Le moment "aha"
@@ -178,13 +179,17 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               ),
               const SizedBox(height: 20),
 
+              // ── Recommandations dynamiques ─────────────────────────────
+              SessionRecommendations(features: _features),
+              const SizedBox(height: 20),
+
               // ── Slider Douleur Post-Session ────────────────────────────
               GlassBentoCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Douleur post-session', style: textTheme.titleLarge),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 16),
                     Text(
                       'Comment vous sentez-vous ?',
                       style: textTheme.bodySmall,

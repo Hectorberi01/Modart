@@ -19,6 +19,7 @@ import 'screens/profile_screen.dart';
 import 'screens/bluetooth_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/registration_journey_screen.dart';
+import '../widgets/custom_loading_indicator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SmartSole — Entry Point
@@ -81,7 +82,7 @@ class SmartSoleApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         return MaterialApp(
-          title: 'SmartSole',
+          title: 'Smartsole',
           debugShowCheckedModeBanner: false,
           theme: themeProvider.theme,
           initialRoute: '/splash',
@@ -98,23 +99,26 @@ class SmartSoleApp extends StatelessWidget {
       case '/splash':
         return _fadeRoute(const _AuthGate(), settings.name!);
       case '/onboarding':
-        return _fadeRoute(const OnboardingScreen(), settings.name!);
+        return _slideFromRightRoute(const OnboardingScreen(), settings.name!);
       case '/auth':
         // UserProfile passed as argument from onboarding
         final profile = settings.arguments as UserProfile?;
         if (profile != null) {
-          return _fadeRoute(AuthScreen(profile: profile), settings.name!);
+          return _slideFromRightRoute(
+            AuthScreen(profile: profile),
+            settings.name!,
+          );
         }
-        return _fadeRoute(const OnboardingScreen(), '/onboarding');
+        return _slideFromRightRoute(const OnboardingScreen(), '/onboarding');
       case '/register':
         final profile = settings.arguments as UserProfile?;
         if (profile != null) {
-          return _fadeRoute(
+          return _slideFromRightRoute(
             RegistrationJourneyScreen(initialProfile: profile),
             settings.name!,
           );
         }
-        return _fadeRoute(const OnboardingScreen(), '/onboarding');
+        return _slideFromRightRoute(const OnboardingScreen(), '/onboarding');
       case '/pairing':
         return _fadeRoute(const _PairingPlaceholder(), settings.name!);
       case '/home':
@@ -151,6 +155,42 @@ class SmartSoleApp extends StatelessWidget {
           child: ScaleTransition(
             scale: Tween(begin: 0.96, end: 1.0).animate(curved),
             child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Slide from right (pour les flux séquentiels : onboarding → auth → register).
+  static PageRouteBuilder _slideFromRightRoute(Widget page, String routeName) {
+    return PageRouteBuilder(
+      settings: RouteSettings(name: routeName),
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        final secondaryCurved = CurvedAnimation(
+          parent: secondaryAnimation,
+          curve: Curves.easeInCubic,
+        );
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(1.0, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: SlideTransition(
+            position: Tween(
+              begin: Offset.zero,
+              end: const Offset(-0.3, 0),
+            ).animate(secondaryCurved),
+            child: FadeTransition(
+              opacity: Tween(begin: 0.8, end: 1.0).animate(curved),
+              child: child,
+            ),
           ),
         );
       },
@@ -206,7 +246,7 @@ class _HomeShellState extends State<HomeShell>
     }
 
     final base = <Widget>[
-      const LiveDashboardScreen(),
+      LiveDashboardScreen(showBlePrompt: _showBleOnDashboard),
       const HistoryTrendsScreen(),
     ];
     if (_profileType == ProfileType.pro) {
@@ -237,11 +277,12 @@ class _HomeShellState extends State<HomeShell>
   }
 
   bool _hasAutoConnected = false;
+  // Transmis à LiveDashboardScreen pour déclencher le check BLE post-auth.
+  bool _showBleOnDashboard = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Check if the route contains profile type argument
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ProfileType) {
       _profileType = args;
@@ -255,12 +296,14 @@ class _HomeShellState extends State<HomeShell>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder:
-                  (_) =>
-                      BluetoothScreen(onContinue: () => Navigator.pop(context)),
+              builder: (_) =>
+                  BluetoothScreen(onContinue: () => Navigator.pop(context)),
             ),
           );
         });
+      }
+      if (args['showBlePrompt'] == true && !_showBleOnDashboard) {
+        _showBleOnDashboard = true;
       }
     }
   }
@@ -566,24 +609,14 @@ class _AuthGateState extends State<_AuthGate> {
         if (!auth.isInitialized) {
           return const Scaffold(
             backgroundColor: SmartSoleColors.darkBg,
-            body: Center(
-              child: CircularProgressIndicator(
-                color: SmartSoleColors.biNormal,
-                strokeWidth: 2,
-              ),
-            ),
+            body: Center(child: CustomLoadingIndicator()),
           );
         }
         // Naviguer au prochain frame (on est dans un build)
         WidgetsBinding.instance.addPostFrameCallback((_) => _navigate(auth));
         return const Scaffold(
           backgroundColor: SmartSoleColors.darkBg,
-          body: Center(
-            child: CircularProgressIndicator(
-              color: SmartSoleColors.biNormal,
-              strokeWidth: 2,
-            ),
-          ),
+          body: Center(child: CustomLoadingIndicator()),
         );
       },
     );

@@ -79,6 +79,11 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Dernière session ───────────────────────────────────────
+              const SizedBox(height: 8),
+              _buildLastSessionCard(isDark, textTheme),
+              const SizedBox(height: 20),
+
               // ── Sélecteur de métrique ──────────────────────────────────
               const SizedBox(height: 8),
               SingleChildScrollView(
@@ -290,6 +295,156 @@ class _HistoryTrendsScreenState extends State<HistoryTrendsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Dernière session card ──────────────────────────────────────────────
+
+  Widget _buildLastSessionCard(bool isDark, TextTheme textTheme) {
+    final features = _mock.thomasSessionFeatures;
+
+    // Score composite (même calcul que SessionSummaryScreen)
+    final int score = ((100 - features.hotspotScore) * 0.3 +
+            features.rollScoreMean * 0.3 +
+            features.stabilityScore * 0.2 +
+            (100 - features.asymmetryPct) * 0.2)
+        .round();
+
+    final BIState scoreState = score >= 70
+        ? BIState.normal
+        : score >= 50
+            ? BIState.warning
+            : BIState.alert;
+    final Color scoreColor = SmartSoleColors.colorForState(scoreState);
+
+    return GlassBentoCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // En-tête
+          Row(
+            children: [
+              Icon(
+                Icons.history_rounded,
+                size: 16,
+                color: SmartSoleColors.biTeal,
+              ),
+              const SizedBox(width: 8),
+              Text('Dernière session', style: textTheme.titleMedium),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/summary'),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: SmartSoleColors.biNormal.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Détails',
+                        style: TextStyle(
+                          fontFamily: 'Articulat CF',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: SmartSoleColors.biNormal,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 10,
+                        color: SmartSoleColors.biNormal,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Score + métriques
+          Row(
+            children: [
+              // Score global
+              Column(
+                children: [
+                  Text(
+                    score.toString(),
+                    style: TextStyle(
+                      fontFamily: 'Articulat CF',
+                      fontSize: 44,
+                      fontWeight: FontWeight.w800,
+                      color: scoreColor,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(
+                    'Score',
+                    style: TextStyle(
+                      fontFamily: 'Articulat CF',
+                      fontSize: 10,
+                      color: isDark
+                          ? SmartSoleColors.textTertiaryDark
+                          : SmartSoleColors.textTertiaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              // Séparateur
+              Container(
+                width: 1,
+                height: 48,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.08),
+              ),
+              const SizedBox(width: 16),
+              // KPIs compacts
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _MiniKpi(
+                      label: 'Hotspot',
+                      value: '${features.hotspotScore.toInt()}',
+                      state: features.hotspotScore > 60
+                          ? BIState.alert
+                          : BIState.normal,
+                      isDark: isDark,
+                    ),
+                    _MiniKpi(
+                      label: 'Déroulé',
+                      value: '${features.rollScoreMean.toInt()}',
+                      state: features.rollScoreMean < 50
+                          ? BIState.alert
+                          : features.rollScoreMean < 70
+                              ? BIState.warning
+                              : BIState.normal,
+                      isDark: isDark,
+                    ),
+                    _MiniKpi(
+                      label: 'Asym.',
+                      value: '${features.asymmetryPct.toInt()}%',
+                      state: features.asymmetryPct > 15
+                          ? BIState.alert
+                          : features.asymmetryPct > 7
+                              ? BIState.warning
+                              : BIState.normal,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -694,6 +849,52 @@ class _TrendKpi extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Mini KPI (utilisé dans la carte dernière session) ───────────────────────
+
+class _MiniKpi extends StatelessWidget {
+  const _MiniKpi({
+    required this.label,
+    required this.value,
+    required this.state,
+    required this.isDark,
+  });
+
+  final String label;
+  final String value;
+  final BIState state;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = SmartSoleColors.colorForState(state);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'Articulat CF',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Articulat CF',
+            fontSize: 10,
+            color: isDark
+                ? SmartSoleColors.textTertiaryDark
+                : SmartSoleColors.textTertiaryLight,
+          ),
+        ),
+      ],
     );
   }
 }
