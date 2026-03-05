@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:modar/l10n/app_localizations.dart';
 import '../dashboard_constants.dart';
 
 class BalanceCard extends StatelessWidget {
@@ -12,13 +13,6 @@ class BalanceCard extends StatelessWidget {
   final double leftPercent;
   final double rightPercent;
 
-  String get _status {
-    final diff = (leftPercent - 0.5).abs();
-    if (diff < 0.05) return 'Optimal';
-    if (diff < 0.10) return 'Acceptable';
-    return 'Déséquilibré';
-  }
-
   Color get _statusColor {
     final diff = (leftPercent - 0.5).abs();
     if (diff < 0.05) return kDashSuccess;
@@ -28,6 +22,14 @@ class BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final diff = (leftPercent - 0.5).abs();
+    final status = diff < 0.05
+        ? l.balanceOptimal
+        : diff < 0.10
+            ? l.balanceAcceptable
+            : l.balanceUnbalanced;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
@@ -42,12 +44,12 @@ class BalanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.balance, size: 14, color: kDashTextSec),
-                  SizedBox(width: 6),
-                  Text('Poids & équilibre',
-                      style: TextStyle(color: kDashTextSec, fontSize: 13)),
+                  const Icon(Icons.balance, size: 14, color: kDashTextSec),
+                  const SizedBox(width: 6),
+                  Text(l.balanceWeightTitle,
+                      style: const TextStyle(color: kDashTextSec, fontSize: 13)),
                 ],
               ),
               Container(
@@ -57,7 +59,7 @@ class BalanceCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  _status,
+                  status,
                   style: TextStyle(
                     color: _statusColor,
                     fontSize: 11,
@@ -89,10 +91,10 @@ class BalanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _BalanceRow(label: 'Gauche', percent: leftPercent, color: kDashAccent),
+          _BalanceRow(label: l.balanceLeft, percent: leftPercent, color: kDashAccent),
           const SizedBox(height: 10),
           _BalanceRow(
-              label: 'Droite',
+              label: l.balanceRight,
               percent: rightPercent,
               color: const Color(0xFF7C3AED)),
         ],

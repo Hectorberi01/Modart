@@ -1,55 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:modar/l10n/app_localizations.dart';
+import 'package:modar/navigation/main_navigation.dart';
+import 'package:modar/providers.dart';
+import 'package:modar/theme/app_theme.dart';
+import 'package:modar/viewModel/app_settings_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/splash_screen.dart';
 import 'screens/bluetooth_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/position_screen.dart';
-import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('fr');
-  //runApp(const ModarApp());
-  runApp(const ProviderScope(child: ModarApp()));
+  await Future.wait([
+    initializeDateFormatting('fr'),
+    initializeDateFormatting('en'),
+  ]);
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [
+        appSettingsProvider.overrideWith((ref) => AppSettingsNotifier(prefs)),
+      ],
+      child: const ModarApp(),
+    ),
+  );
 }
 
-class ModarApp extends StatelessWidget {
+class ModarApp extends ConsumerWidget {
   const ModarApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
     return MaterialApp(
-      title: 'Modar',
+      title: 'Modart',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-        cardColor: Colors.white,
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF1C1F2E),
-          onPrimary: Colors.white,
-          secondary: Color(0xFF2F80ED),
-          surface: Colors.white,
-          onSurface: Color(0xFF111827),
-          outline: Color(0xFFE5E7EB),
-        ),
-        textTheme: GoogleFonts.outfitTextTheme(
-          ThemeData.light().textTheme,
-        ).apply(
-          bodyColor: const Color(0xFF111827),
-          displayColor: const Color(0xFF111827),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF7F8FA),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-      ),
+      themeMode: settings.themeMode,
+      locale: settings.locale,
+      supportedLocales: const [Locale('fr'), Locale('en')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: lightTheme,
+      darkTheme: darkTheme,
       home: const AppInitializationFlow(),
     );
   }
@@ -90,73 +88,5 @@ class _AppInitializationFlowState extends State<AppInitializationFlow> {
     }
 
     return const MainNavigation();
-  }
-}
-
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
-
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  void _openBluetooth(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (_) => BluetoothScreen(onContinue: () => Navigator.pop(context)),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const DashboardScreen(),
-      const PositionScreen(),
-      const HistoryScreen(),
-      SettingsScreen(onManageBluetooth: () => _openBluetooth(context)),
-    ];
-
-    return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: pages),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey.shade400,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_outlined),
-            activeIcon: Icon(Icons.analytics),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_walk),
-            label: 'Position',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Historique',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Réglages',
-          ),
-        ],
-      ),
-    );
   }
 }

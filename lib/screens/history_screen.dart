@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:modar/l10n/app_localizations.dart';
 import 'package:modar/providers.dart';
 import '../models/session.dart';
 
@@ -22,15 +23,16 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final sessionsAsync = ref.watch(sessionsProvider);
 
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kBg,
-        title: const Text(
-          'Historique',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
+        title: Text(
+          l.historyTitle,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _kPrimary),
         ),
         actions: [
           Container(
@@ -52,7 +54,7 @@ class HistoryScreen extends ConsumerWidget {
           child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2),
         ),
         error: (e, _) => Center(
-          child: Text('Erreur : $e', style: const TextStyle(color: _kTextSecondary)),
+          child: Text('${l.historyError}$e', style: const TextStyle(color: _kTextSecondary)),
         ),
         data: (sessions) => CustomScrollView(
           slivers: [
@@ -85,6 +87,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     double totalDistanceKm = 0;
     int totalSteps = 0;
     for (final s in sessions) {
@@ -106,7 +109,7 @@ class _SummaryCard extends StatelessWidget {
             child: _SummaryStat(
               icon: Icons.directions_walk_rounded,
               value: '${sessions.length}',
-              label: 'Sessions',
+              label: l.historySessions,
               color: _kAccent,
             ),
           ),
@@ -115,7 +118,7 @@ class _SummaryCard extends StatelessWidget {
             child: _SummaryStat(
               icon: Icons.route_rounded,
               value: totalDistanceKm.toStringAsFixed(1),
-              label: 'km total',
+              label: l.historyKmTotal,
               color: _kSuccess,
             ),
           ),
@@ -126,7 +129,7 @@ class _SummaryCard extends StatelessWidget {
               value: totalSteps >= 1000
                   ? '${(totalSteps / 1000).toStringAsFixed(1)}k'
                   : '$totalSteps',
-              label: 'pas total',
+              label: l.historyStepsTotal,
               color: const Color(0xFFF59E0B),
             ),
           ),
@@ -273,6 +276,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -288,15 +292,15 @@ class _EmptyState extends StatelessWidget {
             child: const Icon(Icons.history_rounded, size: 36, color: Color(0xFFD1D5DB)),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Aucune session',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _kPrimary),
+          Text(
+            l.historyNoSession,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _kPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Vos sessions apparaîtront ici\naprès votre première marche.',
+          Text(
+            l.historyNoSessionDesc,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: _kTextSecondary),
+            style: const TextStyle(fontSize: 14, color: _kTextSecondary),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:modar/l10n/app_localizations.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.onFinished});
@@ -39,6 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -88,9 +90,9 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Analyse biomécanique intelligente',
-                        style: TextStyle(
+                      Text(
+                        l.splashSubtitle,
+                        style: const TextStyle(
                           color: Color(0xFF6B7280),
                           fontSize: 15,
                         ),
@@ -102,14 +104,14 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
             ),
-            const Positioned(
+            Positioned(
               bottom: 32,
               left: 0,
               right: 0,
               child: Center(
                 child: Text(
-                  'Technologie · Performance · Précision',
-                  style: TextStyle(
+                  l.splashFooter,
+                  style: const TextStyle(
                     color: Color(0xFF9CA3AF),
                     fontSize: 11,
                     letterSpacing: 1.2,

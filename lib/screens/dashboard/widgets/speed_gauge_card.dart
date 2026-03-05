@@ -32,12 +32,12 @@ class SpeedGaugeCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.speed, size: 14, color: Color(0xFFF59E0B)),
-                    SizedBox(width: 6),
-                    Text('Vitesse actuelle',
-                        style: TextStyle(color: kDashTextSec, fontSize: 13)),
+                    const Icon(Icons.speed, size: 14, color: Color(0xFFF59E0B)),
+                    const SizedBox(width: 6),
+                    Text(label,
+                        style: const TextStyle(color: kDashTextSec, fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 10),

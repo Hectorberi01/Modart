@@ -3,7 +3,9 @@ import 'package:modar/models/session.dart';
 import 'package:modar/services/ShoeDataService.dart';
 import 'package:modar/services/bluetooth_service.dart';
 import 'package:modar/services/database_service.dart';
+import 'package:modar/state/app_settings_state.dart';
 import 'package:modar/state/shoe_session_state.dart';
+import 'package:modar/viewModel/app_settings_notifier.dart';
 import 'package:modar/viewModel/shoe_session_viewmodel.dart';
 
 final shoeDataServiceProvider = Provider<ShoeDataService>((ref) {
@@ -28,3 +30,8 @@ final databaseServiceProvider = Provider<DatabaseService>((ref) {
 final sessionsProvider = FutureProvider<List<Session>>((ref) {
   return ref.read(databaseServiceProvider).getSessions();
 });
+
+final appSettingsProvider =
+    StateNotifierProvider<AppSettingsNotifier, AppSettingsState>((ref) {
+      throw UnimplementedError('Override appSettingsProvider in main()');
+    });

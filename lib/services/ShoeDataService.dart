@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+//import 'dart:math';
 
 import 'package:modar/models/ShoeSample.dart';
 
@@ -9,9 +9,9 @@ class ShoeDataService {
   final List<ShoeSample> _samples = [];
 
   Timer? _timer;
-  final Random _random = Random();
+  //final Random _random = Random();
 
-  int _steps = 0;
+  //int _steps = 0;
 
   /// longueur moyenne d’une foulée (m)
   /// marche ≈ 0.70 m
@@ -117,7 +117,7 @@ class ShoeDataService {
   /// 5️⃣ Calculer le score global
   /// ---------------------------------------
   double computeGlobalScore() {
-    final steps = computeTotalSteps();
+    //final steps = computeTotalSteps();
     final distance = estimateDistanceMeters();
     final cadence = estimateCadence();
     final posture = computePostureScore();

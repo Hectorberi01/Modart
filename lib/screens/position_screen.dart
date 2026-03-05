@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:modar/l10n/app_localizations.dart';
 import 'bluetooth_screen.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
@@ -51,30 +52,33 @@ class _PositionScreenState extends State<PositionScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BluetoothScreen(onContinue: () => Navigator.pop(context)),
+        builder: (_) =>
+            BluetoothScreen(onContinue: () => Navigator.pop(context)),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kBg,
         centerTitle: true,
-        title: const Text(
-          'Position des Pieds',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _kPrimary),
+        title: Text(
+          l.positionTitle,
+          style: const TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w600, color: _kPrimary),
         ),
       ),
       body: _connectedDevices.isEmpty
-          ? _buildNoDeviceView()
-          : _buildPressureView(),
+          ? _buildNoDeviceView(l)
+          : _buildPressureView(l),
     );
   }
 
-  Widget _buildNoDeviceView() {
+  Widget _buildNoDeviceView(AppLocalizations l) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -89,18 +93,23 @@ class _PositionScreenState extends State<PositionScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: _cardShadow(),
               ),
-              child: const Icon(Icons.bluetooth_disabled, size: 36, color: _kTextSec),
+              child: const Icon(Icons.bluetooth_disabled,
+                  size: 36, color: _kTextSec),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Aucune chaussure connectée',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: _kPrimary),
+            Text(
+              l.positionNoShoe,
+              style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: _kPrimary),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Connectez-vous à une chaussure pour visualiser les données de pression plantaire.',
+            Text(
+              l.positionNoShoeDesc,
               textAlign: TextAlign.center,
-              style: TextStyle(color: _kTextSec, fontSize: 13, height: 1.6),
+              style: const TextStyle(
+                  color: _kTextSec, fontSize: 13, height: 1.6),
             ),
             const SizedBox(height: 28),
             SizedBox(
@@ -112,10 +121,11 @@ class _PositionScreenState extends State<PositionScreen> {
                   backgroundColor: _kPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text('Connecter une chaussure',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                child: Text(l.positionConnectShoe,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -124,11 +134,10 @@ class _PositionScreenState extends State<PositionScreen> {
     );
   }
 
-  Widget _buildPressureView() {
+  Widget _buildPressureView(AppLocalizations l) {
     final showLeft = _connectedDevices.isNotEmpty;
     final showRight = _connectedDevices.length >= 2;
 
-    // Mock data — à remplacer par les vraies données BLE
     const double leftWeight  = 34.2;
     const double rightWeight = 35.8;
     final double total = showRight ? leftWeight + rightWeight : leftWeight;
@@ -156,39 +165,45 @@ class _PositionScreenState extends State<PositionScreen> {
             ),
             child: Column(
               children: [
-                const Text(
-                  'Carte de Pression Plantaire',
-                  style: TextStyle(
+                Text(
+                  l.positionPressureMap,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Analyse biomécanique en direct',
-                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                Text(
+                  l.positionLiveAnalysis,
+                  style: const TextStyle(
+                      color: Color(0xFF9CA3AF), fontSize: 12),
                 ),
                 const SizedBox(height: 28),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if (showLeft)
-                      _FootView(label: 'Gauche', pressure: leftPct),
+                      _FootView(label: l.positionLeft, pressure: leftPct),
                     if (showRight)
-                      _FootView(label: 'Droit', pressure: rightPct),
+                      _FootView(label: l.positionRight, pressure: rightPct),
                   ],
                 ),
                 const SizedBox(height: 22),
-                // Legend
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _LegendItem(color: _kAccent.withValues(alpha: 0.8), label: 'Faible'),
+                    _LegendItem(
+                        color: _kAccent.withValues(alpha: 0.8),
+                        label: l.positionLow),
                     const SizedBox(width: 18),
-                    _LegendItem(color: const Color(0xFFF59E0B), label: 'Moyen'),
+                    _LegendItem(
+                        color: const Color(0xFFF59E0B),
+                        label: l.positionMedium),
                     const SizedBox(width: 18),
-                    _LegendItem(color: const Color(0xFFEB5757), label: 'Élevé'),
+                    _LegendItem(
+                        color: const Color(0xFFEB5757),
+                        label: l.positionHigh),
                   ],
                 ),
               ],
@@ -196,14 +211,13 @@ class _PositionScreenState extends State<PositionScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Weight chips
           Row(
             children: [
               if (showLeft)
                 Expanded(
                   child: _StatCard(
                     icon: Icons.arrow_back,
-                    label: 'Pied Gauche',
+                    label: l.positionLeftFoot,
                     value: leftWeight.toStringAsFixed(1),
                     unit: 'kg',
                     accentColor: _kAccent,
@@ -214,7 +228,7 @@ class _PositionScreenState extends State<PositionScreen> {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.arrow_forward,
-                    label: 'Pied Droit',
+                    label: l.positionRightFoot,
                     value: rightWeight.toStringAsFixed(1),
                     unit: 'kg',
                     accentColor: const Color(0xFF7C3AED),
@@ -225,15 +239,18 @@ class _PositionScreenState extends State<PositionScreen> {
 
           if (showLeft && showRight) ...[
             const SizedBox(height: 12),
-            _BalanceCard(leftPercent: leftPct, rightPercent: rightPct),
+            _BalanceCard(
+                leftPercent: leftPct,
+                rightPercent: rightPct,
+                l: l),
           ],
 
           const SizedBox(height: 12),
 
-          // Total weight
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 22),
+            padding: const EdgeInsets.symmetric(
+                vertical: 20, horizontal: 22),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
@@ -245,8 +262,9 @@ class _PositionScreenState extends State<PositionScreen> {
               children: [
                 Column(
                   children: [
-                    const Text('Poids Total',
-                        style: TextStyle(color: _kTextSec, fontSize: 12)),
+                    Text(l.positionTotalWeight,
+                        style: const TextStyle(
+                            color: _kTextSec, fontSize: 12)),
                     const SizedBox(height: 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -264,7 +282,8 @@ class _PositionScreenState extends State<PositionScreen> {
                         const Padding(
                           padding: EdgeInsets.only(bottom: 5, left: 5),
                           child: Text('kg',
-                              style: TextStyle(color: _kTextSec, fontSize: 16)),
+                              style: TextStyle(
+                                  color: _kTextSec, fontSize: 16)),
                         ),
                       ],
                     ),
@@ -298,7 +317,9 @@ class _FootView extends StatelessWidget {
         const SizedBox(height: 10),
         Text(label,
             style: const TextStyle(
-                color: Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.w500)),
+                color: Color(0xFF9CA3AF),
+                fontSize: 13,
+                fontWeight: FontWeight.w500)),
       ],
     );
   }
@@ -324,14 +345,13 @@ class _FootPainter extends CustomPainter {
     canvas.save();
     canvas.clipPath(path);
 
-    // Background
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h),
       Paint()..color = const Color(0xFF1A2035),
     );
 
-    // Pressure blobs — bleu (low) → orange → rouge (high)
-    void drawSpot(Offset center, double radius, Color innerColor, double opacity) {
+    void drawSpot(
+        Offset center, double radius, Color innerColor, double opacity) {
       canvas.drawCircle(
         center,
         radius,
@@ -341,16 +361,16 @@ class _FootPainter extends CustomPainter {
               innerColor.withValues(alpha: opacity),
               innerColor.withValues(alpha: 0),
             ],
-          ).createShader(Rect.fromCircle(center: center, radius: radius)),
+          ).createShader(
+              Rect.fromCircle(center: center, radius: radius)),
       );
     }
 
-    // Avant-pied — pression haute → rouge
-    drawSpot(Offset(w * 0.5, h * 0.30), 40, const Color(0xFFEB5757), 0.90 * pressure);
-    // Milieu voûte — pression basse → bleu
+    drawSpot(Offset(w * 0.5, h * 0.30), 40,
+        const Color(0xFFEB5757), 0.90 * pressure);
     drawSpot(Offset(w * 0.38, h * 0.54), 20, _kAccent, 0.45 * pressure);
-    // Talon — pression moyenne → orange
-    drawSpot(Offset(w * 0.5, h * 0.78), 30, const Color(0xFFF59E0B), 0.80 * pressure);
+    drawSpot(Offset(w * 0.5, h * 0.78), 30,
+        const Color(0xFFF59E0B), 0.80 * pressure);
 
     canvas.restore();
   }
@@ -434,7 +454,8 @@ class _StatCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4, left: 4),
                 child: Text(unit,
-                    style: const TextStyle(color: _kTextSec, fontSize: 13)),
+                    style: const TextStyle(
+                        color: _kTextSec, fontSize: 13)),
               ),
             ],
           ),
@@ -447,15 +468,20 @@ class _StatCard extends StatelessWidget {
 // ─── Balance Card ─────────────────────────────────────────────────────────────
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.leftPercent, required this.rightPercent});
+  const _BalanceCard({
+    required this.leftPercent,
+    required this.rightPercent,
+    required this.l,
+  });
   final double leftPercent;
   final double rightPercent;
+  final AppLocalizations l;
 
   String get _status {
     final d = (leftPercent - 0.5).abs();
-    if (d < 0.05) return 'Optimal';
-    if (d < 0.10) return 'Acceptable';
-    return 'Déséquilibré';
+    if (d < 0.05) return l.balanceOptimal;
+    if (d < 0.10) return l.balanceAcceptable;
+    return l.balanceUnbalanced;
   }
 
   Color get _statusColor {
@@ -480,11 +506,14 @@ class _BalanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Équilibre',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14, color: _kPrimary)),
+              Text(l.balanceTitle,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: _kPrimary)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: _statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -518,7 +547,9 @@ class _BalanceCard extends StatelessWidget {
                 final lw = c.maxWidth * leftPercent;
                 return Stack(
                   children: [
-                    Container(color: const Color(0xFF7C3AED).withValues(alpha: 0.15)),
+                    Container(
+                        color: const Color(0xFF7C3AED)
+                            .withValues(alpha: 0.15)),
                     Container(
                         width: lw,
                         color: _kAccent.withValues(alpha: 0.25)),
@@ -527,7 +558,6 @@ class _BalanceCard extends StatelessWidget {
                       child: Container(
                           width: 2, height: 10, color: Colors.white),
                     ),
-                    // Accent line proportional
                     Positioned(
                       left: lw - 2,
                       child: Container(
@@ -555,8 +585,9 @@ class _BalanceCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                           color: _kAccent)),
-                  const Text('Gauche',
-                      style: TextStyle(color: _kTextSec, fontSize: 12)),
+                  Text(l.balanceLeft,
+                      style: const TextStyle(
+                          color: _kTextSec, fontSize: 12)),
                 ],
               ),
               Column(
@@ -567,8 +598,9 @@ class _BalanceCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                           color: Color(0xFF7C3AED))),
-                  const Text('Droit',
-                      style: TextStyle(color: _kTextSec, fontSize: 12)),
+                  Text(l.balanceRight,
+                      style: const TextStyle(
+                          color: _kTextSec, fontSize: 12)),
                 ],
               ),
             ],

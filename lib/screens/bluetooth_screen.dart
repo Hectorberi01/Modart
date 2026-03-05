@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:modar/l10n/app_localizations.dart';
 import 'package:modar/providers.dart';
 import '../services/bluetooth_service.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -31,7 +32,6 @@ class BluetoothScreen extends ConsumerStatefulWidget {
 }
 
 class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
-  //final AppBluetoothService _bluetoothService = AppBluetoothService();
   late AppBluetoothService _bluetoothService;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -39,7 +39,7 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
   final Set<String> _hiddenDeviceIds = {};
   final Map<String, BluetoothConnectionState> _connectionStates = {};
   final Map<String, StreamSubscription<BluetoothConnectionState>>
-  _connectionSubs = {};
+      _connectionSubs = {};
   StreamSubscription<List<ScanResult>>? _scanResultsSub;
 
   @override
@@ -80,14 +80,15 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kBg,
         centerTitle: true,
-        title: const Text(
-          'Connexion Bluetooth',
-          style: TextStyle(
+        title: Text(
+          l.btTitle,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: _kPrimary,
@@ -105,21 +106,16 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color:
-                      isOn
-                          ? _kSuccess.withValues(alpha: 0.08)
-                          : Colors.orange.withValues(alpha: 0.08),
+                  color: isOn
+                      ? _kSuccess.withValues(alpha: 0.08)
+                      : Colors.orange.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color:
-                        isOn
-                            ? _kSuccess.withValues(alpha: 0.3)
-                            : Colors.orange.withValues(alpha: 0.3),
+                    color: isOn
+                        ? _kSuccess.withValues(alpha: 0.3)
+                        : Colors.orange.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -134,20 +130,19 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      isOn ? 'Bluetooth activé' : 'Bluetooth désactivé',
+                      isOn ? l.btEnabled : l.btDisabled,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: isOn ? _kSuccess : Colors.orange.shade700,
                       ),
                     ),
-                    if (!isOn &&
-                        snap.data != BluetoothAdapterState.unknown) ...[
+                    if (!isOn && snap.data != BluetoothAdapterState.unknown) ...[
                       const Spacer(),
                       GestureDetector(
                         onTap: () => ph.openAppSettings(),
                         child: Text(
-                          'Activer →',
+                          l.btEnable,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -180,30 +175,22 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
               controller: _searchController,
               style: const TextStyle(fontSize: 14, color: _kPrimary),
               decoration: InputDecoration(
-                hintText: 'Rechercher un appareil...',
+                hintText: l.btSearchHint,
                 hintStyle: const TextStyle(color: _kTextSec, fontSize: 14),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: _kTextSec,
-                  size: 20,
-                ),
+                prefixIcon: const Icon(Icons.search, color: _kTextSec, size: 20),
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                    horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: Colors.black.withValues(alpha: 0.08),
-                  ),
+                  borderSide:
+                      BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: Colors.black.withValues(alpha: 0.08),
-                  ),
+                  borderSide:
+                      BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -221,9 +208,9 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'APPAREILS DÉTECTÉS',
-                  style: TextStyle(
+                Text(
+                  l.btDetectedDevices,
+                  style: const TextStyle(
                     color: _kTextSec,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -239,20 +226,18 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _kAccent,
-                        ),
+                            strokeWidth: 2, color: _kAccent),
                       );
                     }
                     return GestureDetector(
                       onTap: _startScan,
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.refresh, size: 14, color: _kAccent),
-                          SizedBox(width: 4),
+                          const Icon(Icons.refresh, size: 14, color: _kAccent),
+                          const SizedBox(width: 4),
                           Text(
-                            'Actualiser',
-                            style: TextStyle(
+                            l.btRefresh,
+                            style: const TextStyle(
                               fontSize: 12,
                               color: _kAccent,
                               fontWeight: FontWeight.w500,
@@ -276,41 +261,39 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
               initialData: const [],
               builder: (_, snap) {
                 final all = snap.data ?? [];
-                final results =
-                    all.where((r) {
-                        if (_hiddenDeviceIds.contains(r.device.remoteId.str))
-                          return false;
-                        if (_searchQuery.isEmpty) return true;
-                        return r.device.platformName.toLowerCase().contains(
-                          _searchQuery,
-                        );
-                      }).toList()
-                      ..sort((a, b) {
-                        final aC =
-                            _connectionStates[a.device.remoteId.str] ==
-                            BluetoothConnectionState.connected;
-                        final bC =
-                            _connectionStates[b.device.remoteId.str] ==
-                            BluetoothConnectionState.connected;
-                        if (aC && !bC) return -1;
-                        if (!aC && bC) return 1;
-                        return 0;
-                      });
+                final results = all
+                    .where((r) {
+                      if (_hiddenDeviceIds.contains(r.device.remoteId.str)) {
+                        return false;
+                      }
+                      if (_searchQuery.isEmpty) return true;
+                      return r.device.platformName
+                          .toLowerCase()
+                          .contains(_searchQuery);
+                    })
+                    .toList()
+                  ..sort((a, b) {
+                    final aC = _connectionStates[a.device.remoteId.str] ==
+                        BluetoothConnectionState.connected;
+                    final bC = _connectionStates[b.device.remoteId.str] ==
+                        BluetoothConnectionState.connected;
+                    if (aC && !bC) return -1;
+                    if (!aC && bC) return 1;
+                    return 0;
+                  });
 
                 if (results.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.bluetooth_searching,
-                          size: 48,
-                          color: Colors.grey.shade300,
-                        ),
+                        Icon(Icons.bluetooth_searching,
+                            size: 48, color: Colors.grey.shade300),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Aucun appareil détecté',
-                          style: TextStyle(color: _kTextSec, fontSize: 14),
+                        Text(
+                          l.btNoDevice,
+                          style: const TextStyle(
+                              color: _kTextSec, fontSize: 14),
                         ),
                       ],
                     ),
@@ -322,18 +305,17 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                   itemCount: results.length,
                   itemBuilder: (_, i) {
                     final r = results[i];
-                    final name =
-                        r.device.platformName.isNotEmpty
-                            ? r.device.platformName
-                            : 'Appareil inconnu';
+                    final name = r.device.platformName.isNotEmpty
+                        ? r.device.platformName
+                        : l.btUnknownDevice;
                     final id = r.device.remoteId.str;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Dismissible(
                         key: ValueKey(id),
                         direction: DismissDirection.endToStart,
-                        onDismissed:
-                            (_) => setState(() => _hiddenDeviceIds.add(id)),
+                        onDismissed: (_) =>
+                            setState(() => _hiddenDeviceIds.add(id)),
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 20),
@@ -341,11 +323,8 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                             color: _kDanger,
                             borderRadius: BorderRadius.circular(18),
                           ),
-                          child: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.white,
-                            size: 22,
-                          ),
+                          child: const Icon(Icons.delete_outline,
+                              color: Colors.white, size: 22),
                         ),
                         child: _DeviceCard(
                           name: name,
@@ -366,9 +345,9 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
             child: Column(
               children: [
-                const Text(
-                  'Assurez-vous que la chaussure est allumée',
-                  style: TextStyle(color: _kTextSec, fontSize: 12),
+                Text(
+                  l.btShoeInstruction,
+                  style: const TextStyle(color: _kTextSec, fontSize: 12),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -381,15 +360,12 @@ class _BluetoothScreenState extends ConsumerState<BluetoothScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                          borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text(
-                      'Continuer',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Text(
+                      l.btContinue,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -411,6 +387,7 @@ class _PermissionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       padding: const EdgeInsets.all(14),
@@ -418,23 +395,19 @@ class _PermissionBanner extends StatelessWidget {
         color: const Color(0xFFFFF8E7),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
-        ),
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Color(0xFF92400E),
-                size: 15,
-              ),
-              SizedBox(width: 7),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFF92400E), size: 15),
+              const SizedBox(width: 7),
               Text(
-                'Permissions Bluetooth refusées',
-                style: TextStyle(
+                l.btPermissionsDenied,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF92400E),
                   fontSize: 12,
@@ -444,20 +417,15 @@ class _PermissionBanner extends StatelessWidget {
           ),
           const SizedBox(height: 5),
           Text(
-            permanent
-                ? 'Activez-les dans Réglages > Modar.'
-                : 'Bluetooth et Localisation sont nécessaires.',
+            permanent ? l.btEnableInSettings : l.btPermissionsNeeded,
             style: const TextStyle(
-              color: Color(0xFF92400E),
-              fontSize: 12,
-              height: 1.4,
-            ),
+                color: Color(0xFF92400E), fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: permanent ? () => ph.openAppSettings() : onRetry,
             child: Text(
-              permanent ? 'Ouvrir les Réglages →' : 'Réessayer →',
+              permanent ? l.btOpenSettings : l.btRetry,
               style: const TextStyle(
                 color: Color(0xFF92400E),
                 fontSize: 12,
@@ -531,6 +499,7 @@ class _DeviceCardState extends State<_DeviceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final isConnected = _status == DeviceStatus.connected;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -539,10 +508,9 @@ class _DeviceCardState extends State<_DeviceCard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color:
-              isConnected
-                  ? _kSuccess.withValues(alpha: 0.4)
-                  : Colors.transparent,
+          color: isConnected
+              ? _kSuccess.withValues(alpha: 0.4)
+              : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: _cardShadow(),
@@ -550,84 +518,70 @@ class _DeviceCardState extends State<_DeviceCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: isConnected ? _kSuccess.withValues(alpha: 0.1) : _kBg,
+                  color: isConnected
+                      ? _kSuccess.withValues(alpha: 0.1)
+                      : _kBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  Icons.directions_walk,
-                  size: 20,
-                  color: isConnected ? _kSuccess : _kTextSec,
-                ),
+                child: Icon(Icons.directions_walk,
+                    size: 20,
+                    color: isConnected ? _kSuccess : _kTextSec),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: _kPrimary,
-                      ),
-                    ),
+                    Text(widget.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: _kPrimary)),
                     const SizedBox(height: 2),
-                    Text(
-                      widget.device.remoteId.str,
-                      style: const TextStyle(color: _kTextSec, fontSize: 11),
-                    ),
+                    Text(widget.device.remoteId.str,
+                        style: const TextStyle(
+                            color: _kTextSec, fontSize: 11)),
                   ],
                 ),
               ),
               if (isConnected)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: _kSuccess.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, size: 11, color: _kSuccess),
-                      SizedBox(width: 3),
-                      Text(
-                        'Connecté',
-                        style: TextStyle(
-                          color: _kSuccess,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      const Icon(Icons.check_circle,
+                          size: 11, color: _kSuccess),
+                      const SizedBox(width: 3),
+                      Text(l.btConnected,
+                          style: const TextStyle(
+                              color: _kSuccess,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 14),
-          // Signal gauge
           Row(
             children: [
-              const Text(
-                'Signal',
-                style: TextStyle(color: _kTextSec, fontSize: 11),
-              ),
+              Text(l.btSignal,
+                  style: const TextStyle(color: _kTextSec, fontSize: 11)),
               const Spacer(),
-              Text(
-                '${widget.rssi} dBm',
-                style: const TextStyle(color: _kTextSec, fontSize: 11),
-              ),
+              Text('${widget.rssi} dBm',
+                  style: const TextStyle(color: _kTextSec, fontSize: 11)),
             ],
           ),
           const SizedBox(height: 5),
@@ -641,7 +595,6 @@ class _DeviceCardState extends State<_DeviceCard> {
             ),
           ),
           const SizedBox(height: 14),
-          // Action button
           _ActionButton(
             status: _status,
             onConnect: () => widget.service.connect(widget.device),
@@ -665,6 +618,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     switch (status) {
       case DeviceStatus.disconnected:
         return SizedBox(
@@ -677,13 +631,11 @@ class _ActionButton extends StatelessWidget {
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Connecter',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
+            child: Text(l.btConnect,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         );
       case DeviceStatus.connecting:
@@ -694,26 +646,21 @@ class _ActionButton extends StatelessWidget {
             color: _kAccent.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 14,
                 height: 14,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: _kAccent,
-                ),
+                    strokeWidth: 2, color: _kAccent),
               ),
-              SizedBox(width: 10),
-              Text(
-                'Connexion...',
-                style: TextStyle(
-                  color: _kAccent,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                ),
-              ),
+              const SizedBox(width: 10),
+              Text(l.btConnecting,
+                  style: const TextStyle(
+                      color: _kAccent,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13)),
             ],
           ),
         );
@@ -727,13 +674,11 @@ class _ActionButton extends StatelessWidget {
               foregroundColor: _kDanger,
               side: BorderSide(color: _kDanger.withValues(alpha: 0.4)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Déconnecter',
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-            ),
+            child: Text(l.btDisconnect,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500, fontSize: 13)),
           ),
         );
       case DeviceStatus.outOfRange:
@@ -744,11 +689,9 @@ class _ActionButton extends StatelessWidget {
             color: _kBg,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Center(
-            child: Text(
-              'Hors de portée',
-              style: TextStyle(color: _kTextSec, fontSize: 13),
-            ),
+          child: Center(
+            child: Text(l.btOutOfRange,
+                style: const TextStyle(color: _kTextSec, fontSize: 13)),
           ),
         );
     }

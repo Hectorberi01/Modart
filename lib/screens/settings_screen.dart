@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:modar/l10n/app_localizations.dart';
 import 'package:modar/providers.dart';
-//import '../services/bluetooth_service.dart';
 
 const _kPrimary = Color(0xFF1C1F2E);
 const _kAccent = Color(0xFF2F80ED);
@@ -28,21 +28,23 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  //final AppBluetoothService _bluetoothService = AppBluetoothService();
   bool _autoConnect = true;
   bool _hapticFeedback = true;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final bluetoothService = ref.watch(bluetoothServiceProvider);
+    final settings = ref.watch(appSettingsProvider);
+
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kBg,
         centerTitle: true,
-        title: const Text(
-          'Réglages',
-          style: TextStyle(
+        title: Text(
+          l.settingsTitle,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: _kPrimary,
@@ -52,7 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
-          _SectionLabel(label: 'Bluetooth'),
+          _SectionLabel(label: l.settingsBtSection),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
@@ -62,21 +64,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 builder: (context, snapshot) {
                   final isOn = snapshot.data == BluetoothAdapterState.on;
                   return _SettingsRow(
-                    icon:
-                        isOn
-                            ? Icons.bluetooth_connected_rounded
-                            : Icons.bluetooth_disabled_rounded,
-                    iconBg:
-                        isOn
-                            ? _kSuccess.withValues(alpha: 0.12)
-                            : Colors.grey.withValues(alpha: 0.10),
+                    icon: isOn
+                        ? Icons.bluetooth_connected_rounded
+                        : Icons.bluetooth_disabled_rounded,
+                    iconBg: isOn
+                        ? _kSuccess.withValues(alpha: 0.12)
+                        : Colors.grey.withValues(alpha: 0.10),
                     iconColor: isOn ? _kSuccess : _kTextSecondary,
-                    title: 'Bluetooth',
+                    title: l.settingsBtSection,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          isOn ? 'Activé' : 'Désactivé',
+                          isOn ? l.settingsBtEnabled : l.settingsBtDisabled,
                           style: TextStyle(
                             fontSize: 13,
                             color: isOn ? _kSuccess : _kTextSecondary,
@@ -102,8 +102,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.devices_rounded,
                 iconBg: _kAccent.withValues(alpha: 0.10),
                 iconColor: _kAccent,
-                title: 'Gérer les appareils',
-                subtitle: 'Scanner et connecter une chaussure',
+                title: l.settingsManageDevices,
+                subtitle: l.settingsManageDevicesSub,
                 trailing: const Icon(
                   Icons.chevron_right_rounded,
                   color: Color(0xFFD1D5DB),
@@ -116,7 +116,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.wifi_tethering_rounded,
                 iconBg: const Color(0xFFF59E0B).withValues(alpha: 0.10),
                 iconColor: const Color(0xFFF59E0B),
-                title: 'Connexion automatique',
+                title: l.settingsAutoConnect,
                 trailing: Switch(
                   value: _autoConnect,
                   onChanged: (v) => setState(() => _autoConnect = v),
@@ -127,7 +127,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _SectionLabel(label: 'Préférences'),
+          _SectionLabel(label: l.settingsPrefsSection),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
@@ -135,7 +135,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.vibration_rounded,
                 iconBg: const Color(0xFF8B5CF6).withValues(alpha: 0.10),
                 iconColor: const Color(0xFF8B5CF6),
-                title: 'Retour haptique',
+                title: l.settingsHaptic,
                 trailing: Switch(
                   value: _hapticFeedback,
                   onChanged: (v) => setState(() => _hapticFeedback = v),
@@ -148,31 +148,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.language_rounded,
                 iconBg: _kAccent.withValues(alpha: 0.10),
                 iconColor: _kAccent,
-                title: 'Langue',
-                subtitle: 'Français',
+                title: l.settingsLanguage,
+                subtitle: settings.locale.languageCode == 'fr'
+                    ? l.settingsLangFr
+                    : l.settingsLangEn,
                 trailing: const Icon(
                   Icons.chevron_right_rounded,
                   color: Color(0xFFD1D5DB),
                   size: 20,
                 ),
+                onTap: () => _showLanguagePicker(context, l),
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
               _SettingsRow(
-                icon: Icons.straighten_rounded,
-                iconBg: _kSuccess.withValues(alpha: 0.10),
-                iconColor: _kSuccess,
-                title: 'Unités',
-                subtitle: 'Métrique (km, kg)',
+                icon: Icons.dark_mode_rounded,
+                iconBg: const Color(0xFF6366F1).withValues(alpha: 0.10),
+                iconColor: const Color(0xFF6366F1),
+                title: l.settingsTheme,
+                subtitle: _themeLabel(settings.themeMode, l),
                 trailing: const Icon(
                   Icons.chevron_right_rounded,
                   color: Color(0xFFD1D5DB),
                   size: 20,
                 ),
+                onTap: () => _showThemePicker(context, settings.themeMode, l),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          _SectionLabel(label: 'À propos'),
+          _SectionLabel(label: l.settingsAboutSection),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
@@ -180,7 +184,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.info_outline_rounded,
                 iconBg: _kPrimary.withValues(alpha: 0.08),
                 iconColor: _kPrimary,
-                title: 'Version',
+                title: l.settingsVersion,
                 subtitle: 'SmartStep v1.0.0',
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFF3F4F6)),
@@ -188,7 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.description_outlined,
                 iconBg: _kPrimary.withValues(alpha: 0.08),
                 iconColor: _kPrimary,
-                title: 'Licences open source',
+                title: l.settingsLicenses,
                 trailing: const Icon(
                   Icons.chevron_right_rounded,
                   color: Color(0xFFD1D5DB),
@@ -204,9 +208,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.delete_outline_rounded,
                 iconBg: _kDanger.withValues(alpha: 0.08),
                 iconColor: _kDanger,
-                title: 'Effacer les données',
+                title: l.settingsClearData,
                 titleColor: _kDanger,
-                subtitle: 'Supprimer toutes les sessions',
+                subtitle: l.settingsClearDataSub,
                 onTap: () => _confirmReset(context),
               ),
             ],
@@ -216,48 +220,154 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _confirmReset(BuildContext context) {
+  String _themeLabel(ThemeMode mode, AppLocalizations l) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return l.settingsThemeDark;
+      case ThemeMode.system:
+        return l.settingsThemeSystem;
+      default:
+        return l.settingsThemeLight;
+    }
+  }
+
+  void _showLanguagePicker(BuildContext context, AppLocalizations l) {
+    final current = ref.read(appSettingsProvider).locale;
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text(
-              'Effacer les données',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: const Text(
-              'Toutes les sessions seront supprimées définitivement.\nCette action est irréversible.',
-              style: TextStyle(color: _kTextSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Annuler'),
+      builder: (_) => SimpleDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l.settingsLanguage,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        children: [
+          _dialogOption(context,
+              label: l.settingsLangFr,
+              selected: current.languageCode == 'fr',
+              onTap: () {
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setLocale(const Locale('fr'));
+                Navigator.pop(context);
+              }),
+          _dialogOption(context,
+              label: l.settingsLangEn,
+              selected: current.languageCode == 'en',
+              onTap: () {
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setLocale(const Locale('en'));
+                Navigator.pop(context);
+              }),
+        ],
+      ),
+    );
+  }
+
+  void _showThemePicker(
+      BuildContext context, ThemeMode current, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (_) => SimpleDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l.settingsTheme,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        children: [
+          _dialogOption(context,
+              label: l.settingsThemeLight,
+              selected: current == ThemeMode.light,
+              onTap: () {
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setThemeMode(ThemeMode.light);
+                Navigator.pop(context);
+              }),
+          _dialogOption(context,
+              label: l.settingsThemeDark,
+              selected: current == ThemeMode.dark,
+              onTap: () {
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setThemeMode(ThemeMode.dark);
+                Navigator.pop(context);
+              }),
+          _dialogOption(context,
+              label: l.settingsThemeSystem,
+              selected: current == ThemeMode.system,
+              onTap: () {
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setThemeMode(ThemeMode.system);
+                Navigator.pop(context);
+              }),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialogOption(
+    BuildContext context, {
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return SimpleDialogOption(
+      onPressed: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? _kAccent : _kPrimary,
               ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await ref.read(databaseServiceProvider).deleteAllSessions();
-                  ref.invalidate(sessionsProvider);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Toutes les sessions ont été supprimées.'),
-                        backgroundColor: _kDanger,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Effacer', style: TextStyle(color: _kDanger)),
-              ),
-            ],
+            ),
           ),
+          if (selected) Icon(Icons.check_rounded, color: _kAccent, size: 18),
+        ],
+      ),
+    );
+  }
+
+  void _confirmReset(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l.settingsClearDialogTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(l.settingsClearDialogMsg,
+            style: const TextStyle(color: _kTextSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l.settingsCancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(databaseServiceProvider).deleteAllSessions();
+              ref.invalidate(sessionsProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l.settingsClearedSnack),
+                    backgroundColor: _kDanger,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            },
+            child: Text(l.settingsClearConfirm,
+                style: const TextStyle(color: _kDanger)),
+          ),
+        ],
+      ),
     );
   }
 }
