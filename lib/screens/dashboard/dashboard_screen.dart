@@ -118,31 +118,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         actions: [
-          if (session.badPosition)
-            Container(
-              margin: const EdgeInsets.only(right: 4),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEB5757).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      size: 14, color: Color(0xFFEB5757)),
-                  const SizedBox(width: 4),
-                  Text(
-                    l.dashPostureWarning,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFFEB5757)),
-                  ),
-                ],
-              ),
-            ),
           StreamBuilder<BluetoothAdapterState>(
             stream: bluetoothService.adapterState,
             initialData: BluetoothAdapterState.unknown,
