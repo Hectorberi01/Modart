@@ -271,6 +271,68 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
+    // ── Theme support ──
+    let currentThemeDark = true;
+
+    const themes = {
+      dark: {
+        bg: 0x0A0E1A,
+        bodyCss: '#0A0E1A',
+        hudBg: 'rgba(10, 14, 26, 0.75)',
+        hudBorder: 'rgba(255,255,255,0.08)',
+        hudText: 'rgba(255,255,255,0.55)',
+        panelTitle: 'rgba(255,255,255,0.35)',
+        barBg: 'rgba(255,255,255,0.08)',
+        ratioColor: '#fff',
+        ratioLabel: 'rgba(255,255,255,0.35)',
+        scValue: '#fff',
+        scLabel: 'rgba(255,255,255,0.35)',
+        scDist: 'rgba(255,255,255,0.5)',
+        statusBg: 'rgba(10, 14, 26, 0.75)',
+        statusBorder: 'rgba(255,255,255,0.08)',
+        statusDisconnected: 'rgba(255,255,255,0.35)',
+        calibrateBg: 'rgba(10, 14, 26, 0.75)',
+        calibrateBorder: 'rgba(255,255,255,0.15)',
+        calibrateColor: 'rgba(255,255,255,0.7)',
+        loadingBg: '#0A0E1A',
+        loadingColor: 'rgba(255,255,255,0.4)',
+        gridA: 0x1a2040,
+        gridB: 0x141830,
+        fillLight: 0x4488ff,
+        ambientIntensity: 0.5,
+        topLightIntensity: 0.8,
+        toneMappingExposure: 1.2,
+      },
+      light: {
+        bg: 0xF0F2F5,
+        bodyCss: '#F0F2F5',
+        hudBg: 'rgba(255, 255, 255, 0.85)',
+        hudBorder: 'rgba(0,0,0,0.08)',
+        hudText: 'rgba(0,0,0,0.55)',
+        panelTitle: 'rgba(0,0,0,0.40)',
+        barBg: 'rgba(0,0,0,0.06)',
+        ratioColor: '#1C1F2E',
+        ratioLabel: 'rgba(0,0,0,0.40)',
+        scValue: '#1C1F2E',
+        scLabel: 'rgba(0,0,0,0.40)',
+        scDist: 'rgba(0,0,0,0.55)',
+        statusBg: 'rgba(255, 255, 255, 0.85)',
+        statusBorder: 'rgba(0,0,0,0.08)',
+        statusDisconnected: 'rgba(0,0,0,0.40)',
+        calibrateBg: 'rgba(255, 255, 255, 0.85)',
+        calibrateBorder: 'rgba(0,0,0,0.12)',
+        calibrateColor: 'rgba(0,0,0,0.6)',
+        loadingBg: '#F0F2F5',
+        loadingColor: 'rgba(0,0,0,0.4)',
+        gridA: 0xd0d4dc,
+        gridB: 0xdfe2e8,
+        fillLight: 0x88aaff,
+        ambientIntensity: 0.7,
+        topLightIntensity: 0.9,
+        toneMappingExposure: 1.4,
+      },
+    };
+
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0A0E1A);
@@ -309,6 +371,69 @@
     const gridHelper = new THREE.GridHelper(4, 20, 0x1a2040, 0x141830);
     gridHelper.position.y = -0.15;
     scene.add(gridHelper);
+
+    // ========================================================
+    // SET THEME (called from Flutter)
+    // ========================================================
+    window.setTheme = function(isDark) {
+        currentThemeDark = isDark;
+        const t = isDark ? themes.dark : themes.light;
+
+        // Scene & renderer
+        scene.background = new THREE.Color(t.bg);
+        renderer.setClearColor(t.bg);
+        renderer.toneMappingExposure = t.toneMappingExposure;
+
+        // Lighting
+        ambientLight.intensity = t.ambientIntensity;
+        topLight.intensity = t.topLightIntensity;
+        fillLight.color = new THREE.Color(t.fillLight);
+
+        // Grid
+        gridHelper.material[0].color = new THREE.Color(t.gridA);
+        gridHelper.material[1].color = new THREE.Color(t.gridB);
+
+        // CSS
+        document.body.style.background = t.bodyCss;
+
+        const hud = document.getElementById('hud');
+        hud.style.background = t.hudBg;
+        hud.style.borderColor = t.hudBorder;
+        document.querySelectorAll('.hud-line').forEach(function(el) {
+            if (!el.classList.contains('warn') && !el.classList.contains('good')) {
+                el.style.color = t.hudText;
+            }
+        });
+
+        const wp = document.getElementById('weight-panel');
+        wp.style.background = t.hudBg;
+        wp.style.borderColor = t.hudBorder;
+        document.querySelector('.wp-title').style.color = t.panelTitle;
+        document.querySelectorAll('.weight-bar').forEach(function(el) { el.style.background = t.barBg; });
+        document.querySelectorAll('.weight-bar-label').forEach(function(el) { el.style.color = t.hudText; });
+        document.getElementById('weight-ratio').style.color = t.ratioColor;
+        document.querySelectorAll('.ratio-label').forEach(function(el) { el.style.color = t.ratioLabel; });
+
+        const sc = document.getElementById('steps-counter');
+        sc.style.background = t.hudBg;
+        sc.style.borderColor = t.hudBorder;
+        document.querySelector('.sc-value').style.color = t.scValue;
+        document.querySelector('.sc-label').style.color = t.scLabel;
+        document.querySelector('.sc-dist').style.color = t.scDist;
+
+        const status = document.getElementById('status');
+        status.style.background = t.statusBg;
+        status.style.borderColor = t.statusBorder;
+
+        const btn = document.getElementById('calibrate-btn');
+        btn.style.background = t.calibrateBg;
+        btn.style.borderColor = t.calibrateBorder;
+        btn.style.color = t.calibrateColor;
+
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.background = t.loadingBg;
+        overlay.style.color = t.loadingColor;
+    };
 
     // Shoe group — will hold the loaded .glb model
     const shoeGroup = new THREE.Group();

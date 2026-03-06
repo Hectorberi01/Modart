@@ -378,6 +378,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           style: textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.w800,
             letterSpacing: -0.8,
+            color: SmartSoleColors.textPrimaryDark,
           ),
           textAlign: TextAlign.center,
         ),
@@ -427,6 +428,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             style: textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: -0.8,
+              color: SmartSoleColors.textPrimaryDark,
             ),
           ),
           const SizedBox(height: 6),
