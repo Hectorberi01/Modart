@@ -19,6 +19,7 @@ class _DebugConsoleScreenState extends ConsumerState<DebugConsoleScreen> {
   StreamSubscription<BleLogEntry>? _sub;
   bool _autoScroll = true;
   bool _paused = false;
+  bool _isSimulating = false;
   String _filter = '';
 
   static const _tagColors = <String, Color>{
@@ -40,6 +41,7 @@ class _DebugConsoleScreenState extends ConsumerState<DebugConsoleScreen> {
   void initState() {
     super.initState();
     final btService = ref.read(bluetoothServiceProvider);
+    _isSimulating = btService.isSimulating;
     // Load existing logs
     _logs.addAll(btService.logs);
     // Listen for new logs
@@ -61,6 +63,16 @@ class _DebugConsoleScreenState extends ConsumerState<DebugConsoleScreen> {
     _sub?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  void _toggleSimulation() {
+    final btService = ref.read(bluetoothServiceProvider);
+    if (btService.isSimulating) {
+      btService.stopSimulation();
+    } else {
+      btService.startRandomSimulation();
+    }
+    setState(() => _isSimulating = btService.isSimulating);
   }
 
   List<BleLogEntry> get _filteredLogs {
@@ -147,6 +159,13 @@ class _DebugConsoleScreenState extends ConsumerState<DebugConsoleScreen> {
             onPressed: () => setState(() => _logs.clear()),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _toggleSimulation,
+        icon: Icon(_isSimulating ? Icons.stop : Icons.play_arrow),
+        label: Text(_isSimulating ? 'Stop' : 'Simuler'),
+        backgroundColor: _isSimulating ? Colors.red : Colors.green,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [

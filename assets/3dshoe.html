@@ -8,10 +8,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-          background: #f5f5f5;
+          background: #0A0E1A;
           overflow: hidden;
           font-family: 'Courier New', monospace;
-          color: #333;
+          color: #ccc;
         }
 
         #canvas-container {
@@ -24,33 +24,105 @@
 
         #hud {
           position: absolute;
-          top: 16px;
-          left: 16px;
+          top: 12px;
+          left: 12px;
           pointer-events: none;
           z-index: 10;
+          background: rgba(10, 14, 26, 0.75);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px;
+          padding: 10px 14px;
         }
 
         #hud .hud-line {
-          font-size: 11px;
-          letter-spacing: 1px;
-          color: #555;
-          margin-bottom: 4px;
+          font-size: 10px;
+          letter-spacing: 0.8px;
+          color: rgba(255,255,255,0.55);
+          margin-bottom: 3px;
         }
 
-        #hud .hud-line.warn {
-          color: #e53935;
+        #hud .hud-line.warn { color: #ef5350; }
+        #hud .hud-line.good { color: #66bb6a; }
+
+        /* Weight panel */
+        #weight-panel {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          pointer-events: none;
+          z-index: 10;
+          background: rgba(10, 14, 26, 0.75);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px;
+          padding: 12px 16px;
+          min-width: 140px;
+        }
+
+        #weight-panel .wp-title {
+          font-size: 9px;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 8px;
+        }
+
+        .weight-bar-container { margin-bottom: 6px; }
+
+        .weight-bar-label {
+          font-size: 10px;
+          color: rgba(255,255,255,0.5);
+          margin-bottom: 2px;
+          display: flex;
+          justify-content: space-between;
+        }
+
+        .weight-bar {
+          height: 6px;
+          background: rgba(255,255,255,0.08);
+          border-radius: 3px;
+          overflow: hidden;
+        }
+
+        .weight-bar-fill {
+          height: 100%;
+          border-radius: 3px;
+          transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .weight-bar-fill.heel { background: #42a5f5; }
+        .weight-bar-fill.fore { background: #66bb6a; }
+
+        #weight-ratio {
+          font-size: 18px;
+          font-weight: bold;
+          text-align: center;
+          margin-top: 8px;
+          color: #fff;
+          letter-spacing: 1px;
+        }
+
+        #weight-ratio .ratio-label {
+          font-size: 9px;
+          color: rgba(255,255,255,0.35);
+          letter-spacing: 1.5px;
+          display: block;
+          margin-top: 2px;
         }
 
         #status {
           position: absolute;
-          bottom: 16px;
-          right: 16px;
+          bottom: 12px;
+          right: 12px;
           font-size: 10px;
           letter-spacing: 2px;
           text-transform: uppercase;
           pointer-events: none;
           z-index: 10;
-          color: #999;
+          color: rgba(255,255,255,0.35);
+          background: rgba(10, 14, 26, 0.75);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px;
+          padding: 6px 12px;
         }
 
         #status .dot {
@@ -58,114 +130,358 @@
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: #ccc;
+          background: #555;
           margin-right: 6px;
           vertical-align: middle;
           transition: background 0.3s;
         }
 
         #status.connected .dot {
-          background: #43a047;
-          box-shadow: 0 0 6px rgba(67, 160, 71, 0.5);
+          background: #66bb6a;
+          box-shadow: 0 0 8px rgba(102, 187, 106, 0.5);
         }
 
-        #status.connected { color: #43a047; }
-        #status.disconnected { color: #999; }
+        #status.connected { color: #66bb6a; }
+        #status.disconnected { color: rgba(255,255,255,0.35); }
+
+        #steps-counter {
+          position: absolute;
+          bottom: 12px;
+          left: 12px;
+          pointer-events: none;
+          z-index: 10;
+          background: rgba(10, 14, 26, 0.75);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px;
+          padding: 10px 16px;
+          text-align: center;
+        }
+
+        #steps-counter .sc-value {
+          font-size: 28px;
+          font-weight: bold;
+          color: #fff;
+        }
+
+        #steps-counter .sc-label {
+          font-size: 9px;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.35);
+        }
+
+        #steps-counter .sc-dist {
+          font-size: 11px;
+          color: rgba(255,255,255,0.5);
+          margin-top: 2px;
+        }
+
+        #loading-overlay {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: #0A0E1A;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+          font-size: 13px;
+          color: rgba(255,255,255,0.4);
+          letter-spacing: 2px;
+        }
+
+        #calibrate-btn {
+          position: absolute;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 10;
+          background: rgba(10, 14, 26, 0.75);
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 8px;
+          padding: 8px 20px;
+          color: rgba(255,255,255,0.7);
+          font-family: 'Courier New', monospace;
+          font-size: 11px;
+          font-weight: bold;
+          letter-spacing: 2px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: none;
+        }
+
+        #calibrate-btn:active {
+          background: rgba(102, 187, 106, 0.2);
+          border-color: #66bb6a;
+          color: #66bb6a;
+        }
     </style>
 </head>
 <body>
 
 <div id="canvas-container"></div>
+<div id="loading-overlay">CHARGEMENT DU MODELE...</div>
 
-<div id="hud">
+<div id="hud" style="display:none;">
     <div class="hud-line" id="hud-angle">ANGLE X: -- / Y: --</div>
-    <div class="hud-line" id="hud-mag">MAG: -- g</div>
-    <div class="hud-line" id="hud-delta">DELTA: --</div>
-    <div class="hud-line" id="hud-pas">PAS: -- | DIST: -- m</div>
-    <div class="hud-line" id="hud-gyro">GYRO X: -- Y: -- Z: --</div>
+    <div class="hud-line" id="hud-accel">ACCEL X: -- Y: -- Z: --</div>
+    <div class="hud-line" id="hud-gyro">GYRO  X: -- Y: -- Z: --</div>
+    <div class="hud-line" id="hud-mag">MAG: -- g | DELTA: --</div>
     <div class="hud-line" id="hud-pos">POSTURE: --</div>
+</div>
+
+<div id="weight-panel" style="display:none;">
+    <div class="wp-title">Repartition poids</div>
+    <div class="weight-bar-container">
+        <div class="weight-bar-label">
+            <span>Talon</span>
+            <span id="heel-value">-- g</span>
+        </div>
+        <div class="weight-bar">
+            <div class="weight-bar-fill heel" id="heel-bar" style="width: 0%"></div>
+        </div>
+    </div>
+    <div class="weight-bar-container">
+        <div class="weight-bar-label">
+            <span>Avant-pied</span>
+            <span id="fore-value">-- g</span>
+        </div>
+        <div class="weight-bar">
+            <div class="weight-bar-fill fore" id="fore-bar" style="width: 0%"></div>
+        </div>
+    </div>
+    <div id="weight-ratio">
+        --
+        <span class="ratio-label">Talon / Avant</span>
+    </div>
+</div>
+
+<div id="steps-counter" style="display:none;">
+    <div class="sc-value" id="steps-value">0</div>
+    <div class="sc-label">Pas</div>
+    <div class="sc-dist" id="dist-value">0.00 m</div>
 </div>
 
 <div id="status" class="disconnected">
     <span class="dot"></span>EN ATTENTE
 </div>
 
+<button id="calibrate-btn" onclick="calibrate()">CALIBRER</button>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f5f5);
+    scene.background = new THREE.Color(0x0A0E1A);
 
-    // Camera top-down (vue du dessus)
-    const frustumSize = 6;
-    const aspect = window.innerWidth / window.innerHeight;
-    const camera = new THREE.OrthographicCamera(
-      -frustumSize / 2, frustumSize / 2,
-      frustumSize / 2 / aspect, -frustumSize / 2 / aspect,
-      0.1, 100
-    );
-    camera.position.set(0, 10, 0);
-    camera.up.set(0, 0, -1);
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 200);
+    camera.position.set(0, 0.3, 0.6);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0xf5f5f5);
+    renderer.setClearColor(0x0A0E1A);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
     container.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    topLight.position.set(0, 10, 0);
+    const topLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    topLight.position.set(2, 5, 3);
     scene.add(topLight);
 
-    // 8x8 grid
-    const gridHelper = new THREE.GridHelper(8, 8, 0xcccccc, 0xe0e0e0);
-    gridHelper.position.y = -0.01;
+    const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+    fillLight.position.set(-3, 3, -2);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    rimLight.position.set(0, -2, -3);
+    scene.add(rimLight);
+
+    // Subtle grid
+    const gridHelper = new THREE.GridHelper(4, 20, 0x1a2040, 0x141830);
+    gridHelper.position.y = -0.15;
     scene.add(gridHelper);
 
-    // Shoe = simple rectangle + front marker
+    // Shoe group — will hold the loaded .glb model
     const shoeGroup = new THREE.Group();
-
-    const shoeGeo = new THREE.BoxGeometry(0.8, 0.1, 2.0);
-    const shoeMat = new THREE.MeshStandardMaterial({
-      color: 0x333333,
-      roughness: 0.7,
-      metalness: 0.1
-    });
-    const shoe = new THREE.Mesh(shoeGeo, shoeMat);
-    shoe.position.y = 0.05;
-    shoeGroup.add(shoe);
-
-    // Front marker (vert) pour repérer l'avant
-    const markerGeo = new THREE.BoxGeometry(0.3, 0.11, 0.1);
-    const markerMat = new THREE.MeshStandardMaterial({
-      color: 0x43a047,
-      roughness: 0.5
-    });
-    const marker = new THREE.Mesh(markerGeo, markerMat);
-    marker.position.set(0, 0.055, 0.95);
-    shoeGroup.add(marker);
-
     scene.add(shoeGroup);
 
     // State
+    let modelLoaded = false;
     let targetRotation = { x: 0, y: 0, z: 0 };
     let currentRotation = { x: 0, y: 0, z: 0 };
+    let targetPosition = { x: 0, y: 0, z: 0 };
+    let currentPosition = { x: 0, y: 0, z: 0 };
     let lastUpdateTime = 0;
     const LERP_FACTOR = 0.12;
+    const POS_LERP = 0.08;
+
+    // Calibration offsets — stored when user presses "Calibrer"
+    let calibrated = false;
+    let calOffset = { ax: 0, ay: 0, az: 0, angleX: 0, angleY: 0, yaw: 0 };
+    // Raw values from last update (pre-calibration) for calibration capture
+    let rawValues = { ax: 0, ay: 0, az: 0, angleX: 0, angleY: 0 };
 
     // ========================================================
-    // UPDATE FUNCTION (called from Flutter)
+    // CALIBRATE (called from Flutter or from button)
+    // ========================================================
+    window.calibrate = function() {
+        calOffset.ax = rawValues.ax;
+        calOffset.ay = rawValues.ay;
+        calOffset.az = rawValues.az;
+        calOffset.angleX = rawValues.angleX;
+        calOffset.angleY = rawValues.angleY;
+        calOffset.yaw = targetRotation.y;
+
+        // Reset current state to zero
+        targetRotation = { x: 0, y: 0, z: 0 };
+        currentRotation = { x: 0, y: 0, z: 0 };
+        targetPosition = { x: 0, y: 0, z: 0 };
+        currentPosition = { x: 0, y: 0, z: 0 };
+
+        calibrated = true;
+
+        // Visual feedback
+        const btn = document.getElementById('calibrate-btn');
+        btn.textContent = 'CALIBRE';
+        btn.style.borderColor = '#66bb6a';
+        btn.style.color = '#66bb6a';
+        setTimeout(function() {
+            btn.textContent = 'CALIBRER';
+            btn.style.borderColor = 'rgba(255,255,255,0.15)';
+            btn.style.color = 'rgba(255,255,255,0.7)';
+        }, 1200);
+    };
+
+    // Pressure zone targets
+    let heelPressureTarget = 0;
+    let forePressureTarget = 0;
+    let heelPressureCurrent = 0;
+    let forePressureCurrent = 0;
+
+    // Pressure zone meshes (added on top of loaded model)
+    let heelZone, foreZone, heelZoneMat, foreZoneMat;
+
+    function createPressureZones(boundingBox) {
+        const size = new THREE.Vector3();
+        boundingBox.getSize(size);
+        const center = new THREE.Vector3();
+        boundingBox.getCenter(center);
+
+        // Heel zone — at the back of the shoe
+        const heelRadius = size.x * 0.25;
+        const heelZoneGeo = new THREE.CircleGeometry(heelRadius, 32);
+        heelZoneMat = new THREE.MeshStandardMaterial({
+            color: 0x42a5f5, transparent: true, opacity: 0.0,
+            roughness: 0.5, side: THREE.DoubleSide, depthWrite: false
+        });
+        heelZone = new THREE.Mesh(heelZoneGeo, heelZoneMat);
+        heelZone.rotation.x = -Math.PI / 2;
+        // Position at the heel (back of shoe along Z axis)
+        heelZone.position.set(center.x, boundingBox.max.y + 0.005, center.z - size.z * 0.3);
+        shoeGroup.add(heelZone);
+
+        // Forefoot zone — at the front of the shoe
+        const foreRadius = size.x * 0.3;
+        const foreZoneGeo = new THREE.CircleGeometry(foreRadius, 32);
+        foreZoneMat = new THREE.MeshStandardMaterial({
+            color: 0x66bb6a, transparent: true, opacity: 0.0,
+            roughness: 0.5, side: THREE.DoubleSide, depthWrite: false
+        });
+        foreZone = new THREE.Mesh(foreZoneGeo, foreZoneMat);
+        foreZone.rotation.x = -Math.PI / 2;
+        foreZone.position.set(center.x, boundingBox.max.y + 0.005, center.z + size.z * 0.3);
+        shoeGroup.add(foreZone);
+    }
+
+    // ========================================================
+    // LOAD GLB MODEL (called from Flutter with base64 data)
+    // ========================================================
+    window.loadGLB = function(base64String) {
+        try {
+            // Decode base64 to ArrayBuffer
+            const binary = atob(base64String);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const arrayBuffer = bytes.buffer;
+
+            const loader = new THREE.GLTFLoader();
+            loader.parse(arrayBuffer, '', function(gltf) {
+                const model = gltf.scene;
+
+                // Compute bounding box to center and scale the model
+                const box = new THREE.Box3().setFromObject(model);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+
+                // Scale model to fit ~0.4 units
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 0.4 / maxDim;
+                model.scale.set(scale, scale, scale);
+
+                // Recompute after scaling
+                const scaledBox = new THREE.Box3().setFromObject(model);
+                const scaledCenter = new THREE.Vector3();
+                scaledBox.getCenter(scaledCenter);
+
+                // Center the model
+                model.position.sub(scaledCenter);
+
+                shoeGroup.add(model);
+
+                // Create pressure zones based on scaled bounding box
+                const finalBox = new THREE.Box3().setFromObject(model);
+                createPressureZones(finalBox);
+
+                // Adjust camera based on model size
+                const finalSize = new THREE.Vector3();
+                finalBox.getSize(finalSize);
+                const dist = Math.max(finalSize.x, finalSize.z) * 2.5;
+                camera.position.set(0, dist * 0.6, dist * 0.8);
+                camera.lookAt(0, 0, 0);
+
+                modelLoaded = true;
+
+                // Hide loading, show HUD
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('hud').style.display = '';
+                document.getElementById('weight-panel').style.display = '';
+                document.getElementById('steps-counter').style.display = '';
+                document.getElementById('calibrate-btn').style.display = '';
+
+            }, function(error) {
+                console.error('GLTFLoader parse error:', error);
+                document.getElementById('loading-overlay').textContent = 'ERREUR CHARGEMENT';
+            });
+        } catch(e) {
+            console.error('loadGLB error:', e);
+            document.getElementById('loading-overlay').textContent = 'ERREUR: ' + e.message;
+        }
+    };
+
+    // ========================================================
+    // UPDATE FUNCTION (called from Flutter with sensor data)
     // ========================================================
     window.updateShoe = function(jsonString) {
       try {
         const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
 
+        const ax = parseFloat(data.ax) || 0;
+        const ay = parseFloat(data.ay) || 0;
+        const az = parseFloat(data.az) || 0;
         const gx = parseFloat(data.gx) || 0;
         const gy = parseFloat(data.gy) || 0;
         const gz = parseFloat(data.gz) || 0;
@@ -174,25 +490,66 @@
         const mag = parseFloat(data.mag) || 1;
         const delta = parseFloat(data.delta) || 0;
         const pas = parseInt(data.pas) || 0;
-        const distance = data.distance_m || '--';
+        const distance = data.distance_m || '0.00';
         const mauvais = data.mauvais_positionnement || false;
+        const poidsTalon = parseFloat(data.poids_talon_g) || 0;
+        const poidsAvant = parseFloat(data.poids_avantpied_g) || 0;
+        const totalPoids = poidsTalon + poidsAvant;
 
-        // Mapping capteur → Three.js (à ajuster selon montage physique)
-        targetRotation.x = (angleY * Math.PI) / 180;
-        targetRotation.z = (angleX * Math.PI) / 180;
-        targetRotation.y += (gz * 0.01 * Math.PI) / 180;
+        // Store raw values for calibration capture
+        rawValues.ax = ax;
+        rawValues.ay = ay;
+        rawValues.az = az;
+        rawValues.angleX = angleX;
+        rawValues.angleY = angleY;
+
+        // Apply calibration offsets
+        const cAx = calibrated ? ax - calOffset.ax : ax;
+        const cAy = calibrated ? ay - calOffset.ay : ay;
+        const cAz = calibrated ? az - calOffset.az : az;
+        const cAngleX = calibrated ? angleX - calOffset.angleX : angleX;
+        const cAngleY = calibrated ? angleY - calOffset.angleY : angleY;
+
+        // ── Orientation from accelerometer ──
+        const accelPitch = Math.atan2(cAx, Math.sqrt(cAy * cAy + cAz * cAz));
+        const accelRoll  = Math.atan2(-cAz, Math.sqrt(cAx * cAx + cAy * cAy));
+
+        const espPitchRad = (cAngleY * Math.PI) / 180;
+        const espRollRad  = (cAngleX * Math.PI) / 180;
+
+        targetRotation.x = espPitchRad * 0.4 + accelPitch * 0.6;
+        targetRotation.z = espRollRad  * 0.4 + accelRoll  * 0.6;
+
+        // Yaw from gyroscope (integrated, minus calibration yaw offset)
+        targetRotation.y += (gz * 0.005 * Math.PI) / 180;
+        if (calibrated) {
+          // Keep yaw relative to calibration point
+        }
+
+        // ── Position shift from calibrated accelerometer ──
+        const posScale = 0.05;
+        targetPosition.x = cAx * posScale;
+        targetPosition.y = cAy * posScale;
+        targetPosition.z = cAz * posScale;
+
+        // Pressure zones
+        if (totalPoids > 0) {
+          heelPressureTarget = poidsTalon / totalPoids;
+          forePressureTarget = poidsAvant / totalPoids;
+        } else {
+          heelPressureTarget = 0;
+          forePressureTarget = 0;
+        }
 
         // HUD
         document.getElementById('hud-angle').textContent =
           'ANGLE X: ' + angleX.toFixed(1) + '\u00B0 / Y: ' + angleY.toFixed(1) + '\u00B0';
-        document.getElementById('hud-mag').textContent =
-          'MAG: ' + mag.toFixed(3) + ' g';
-        document.getElementById('hud-delta').textContent =
-          'DELTA: ' + delta.toFixed(4);
-        document.getElementById('hud-pas').textContent =
-          'PAS: ' + pas + ' | DIST: ' + distance + ' m';
+        document.getElementById('hud-accel').textContent =
+          'ACCEL X: ' + ax.toFixed(3) + ' Y: ' + ay.toFixed(3) + ' Z: ' + az.toFixed(3);
         document.getElementById('hud-gyro').textContent =
-          'GYRO X: ' + gx.toFixed(1) + ' Y: ' + gy.toFixed(1) + ' Z: ' + gz.toFixed(1);
+          'GYRO  X: ' + gx.toFixed(2) + ' Y: ' + gy.toFixed(2) + ' Z: ' + gz.toFixed(2);
+        document.getElementById('hud-mag').textContent =
+          'MAG: ' + mag.toFixed(3) + ' g | DELTA: ' + delta.toFixed(4);
 
         const hudPos = document.getElementById('hud-pos');
         if (mauvais) {
@@ -200,9 +557,32 @@
           hudPos.className = 'hud-line warn';
         } else {
           hudPos.textContent = 'POSTURE: OK';
-          hudPos.className = 'hud-line';
+          hudPos.className = 'hud-line good';
         }
 
+        // Weight panel
+        document.getElementById('heel-value').textContent = poidsTalon.toFixed(0) + ' g';
+        document.getElementById('fore-value').textContent = poidsAvant.toFixed(0) + ' g';
+
+        const maxWeight = Math.max(totalPoids, 1);
+        document.getElementById('heel-bar').style.width = (poidsTalon / maxWeight * 100) + '%';
+        document.getElementById('fore-bar').style.width = (poidsAvant / maxWeight * 100) + '%';
+
+        if (totalPoids > 0) {
+          const heelPct = Math.round(poidsTalon / totalPoids * 100);
+          const forePct = 100 - heelPct;
+          document.getElementById('weight-ratio').innerHTML =
+            heelPct + ' / ' + forePct + '<span class="ratio-label">Talon / Avant</span>';
+        } else {
+          document.getElementById('weight-ratio').innerHTML =
+            '-- / --<span class="ratio-label">Talon / Avant</span>';
+        }
+
+        // Steps counter
+        document.getElementById('steps-value').textContent = pas;
+        document.getElementById('dist-value').textContent = distance + ' m';
+
+        // Status
         const statusEl = document.getElementById('status');
         statusEl.className = 'connected';
         statusEl.innerHTML = '<span class="dot"></span>CONNECT\u00C9';
@@ -214,20 +594,47 @@
     };
 
     // ========================================================
-    // ANIMATION LOOP (pas d'animation idle)
+    // ANIMATION LOOP
     // ========================================================
     function animate() {
       requestAnimationFrame(animate);
 
-      currentRotation.x += (targetRotation.x - currentRotation.x) * LERP_FACTOR;
-      currentRotation.y += (targetRotation.y - currentRotation.y) * LERP_FACTOR;
-      currentRotation.z += (targetRotation.z - currentRotation.z) * LERP_FACTOR;
+      if (modelLoaded) {
+        // Smooth rotation interpolation
+        currentRotation.x += (targetRotation.x - currentRotation.x) * LERP_FACTOR;
+        currentRotation.y += (targetRotation.y - currentRotation.y) * LERP_FACTOR;
+        currentRotation.z += (targetRotation.z - currentRotation.z) * LERP_FACTOR;
 
-      shoeGroup.rotation.x = currentRotation.x;
-      shoeGroup.rotation.y = currentRotation.y;
-      shoeGroup.rotation.z = currentRotation.z;
+        shoeGroup.rotation.x = currentRotation.x;
+        shoeGroup.rotation.y = currentRotation.y;
+        shoeGroup.rotation.z = currentRotation.z;
 
-      if (Date.now() - lastUpdateTime > 3000) {
+        // Smooth position interpolation
+        currentPosition.x += (targetPosition.x - currentPosition.x) * POS_LERP;
+        currentPosition.y += (targetPosition.y - currentPosition.y) * POS_LERP;
+        currentPosition.z += (targetPosition.z - currentPosition.z) * POS_LERP;
+
+        shoeGroup.position.x = currentPosition.x;
+        shoeGroup.position.y = currentPosition.y;
+        shoeGroup.position.z = currentPosition.z;
+
+        // Smooth pressure zone opacity & scale
+        if (heelZoneMat && foreZoneMat) {
+          heelPressureCurrent += (heelPressureTarget - heelPressureCurrent) * 0.1;
+          forePressureCurrent += (forePressureTarget - forePressureCurrent) * 0.1;
+
+          heelZoneMat.opacity = heelPressureCurrent * 0.7;
+          foreZoneMat.opacity = forePressureCurrent * 0.7;
+
+          const heelScale = 0.8 + heelPressureCurrent * 0.5;
+          const foreScale = 0.8 + forePressureCurrent * 0.5;
+          heelZone.scale.set(heelScale, heelScale, 1);
+          foreZone.scale.set(foreScale, foreScale, 1);
+        }
+      }
+
+      // Timeout -> disconnected
+      if (Date.now() - lastUpdateTime > 3000 && lastUpdateTime > 0) {
         const statusEl = document.getElementById('status');
         statusEl.className = 'disconnected';
         statusEl.innerHTML = '<span class="dot"></span>EN ATTENTE';
@@ -240,38 +647,10 @@
 
     // Resize
     window.addEventListener('resize', function() {
-      const newAspect = window.innerWidth / window.innerHeight;
-      camera.top = frustumSize / 2 / newAspect;
-      camera.bottom = -frustumSize / 2 / newAspect;
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    // ========================================================
-    // TEST MODE (décommenter pour tester dans le navigateur)
-    // ========================================================
-    /*
-    function simulateData() {
-      const t = Date.now() * 0.001;
-      updateShoe(JSON.stringify({
-        t: Date.now(),
-        pas: Math.floor(t / 2) % 100,
-        distance_m: (Math.floor(t / 2) % 100 * 0.75).toFixed(2),
-        ax: (Math.sin(t) * 0.3).toFixed(3),
-        ay: (-0.87 + Math.sin(t * 1.3) * 0.1).toFixed(3),
-        az: (-0.5 + Math.cos(t) * 0.2).toFixed(3),
-        gx: (Math.sin(t * 2) * 10).toFixed(2),
-        gy: (Math.cos(t * 1.5) * 5).toFixed(2),
-        gz: (Math.sin(t * 0.7) * 3).toFixed(2),
-        mag: (1.0 + Math.sin(t * 3) * 0.15).toFixed(3),
-        delta: (Math.abs(Math.sin(t * 4)) * 0.2).toFixed(4),
-        angle_x: (Math.sin(t) * 20).toFixed(1),
-        angle_y: (Math.cos(t * 0.8) * 15).toFixed(1),
-        mauvais_positionnement: Math.sin(t) > 0.5
-      }));
-    }
-    setInterval(simulateData, 100);
-    */
 </script>
 
 </body>

@@ -234,18 +234,58 @@ class AppBluetoothService {
 
     _simulationStarted = true;
 
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      _steps += _random.nextInt(2);
+    double distanceM = 0;
+    int espTime = 0;
+    double phase = 0;
+
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      _steps += _random.nextInt(3);
+      distanceM += _random.nextDouble() * 1.5;
+      espTime += 100;
+      phase += 0.15;
+
+      // Extreme simulation — shoe being flipped, rotated, shaken
+      // Big sinusoidal sweeps + random spikes
+      final ax = sin(phase * 1.3) * 2.0 + (_random.nextDouble() - 0.5) * 3.0;
+      final ay = cos(phase * 0.7) * 2.0 + (_random.nextDouble() - 0.5) * 2.0;
+      final az = sin(phase * 2.1) * 1.5 + (_random.nextDouble() - 0.5) * 2.5;
+      // Gyroscope — fast spinning
+      final gx = sin(phase * 0.9) * 150 + (_random.nextDouble() - 0.5) * 80;
+      final gy = cos(phase * 1.4) * 120 + (_random.nextDouble() - 0.5) * 60;
+      final gz = sin(phase * 1.8) * 200 + (_random.nextDouble() - 0.5) * 100;
+      final mag = sqrt(ax * ax + ay * ay + az * az);
+      final delta = (_random.nextDouble() * 0.5).abs();
+      // Angles — full range sweeps (-90 to +90)
+      final angleX = sin(phase * 0.6) * 80 + (_random.nextDouble() - 0.5) * 30;
+      final angleY = cos(phase * 0.4) * 70 + (_random.nextDouble() - 0.5) * 25;
+      // Weight — dramatic shifts between heel and forefoot
+      final weightPhase = sin(phase * 0.8);
+      final poidsTalon = (weightPhase > 0 ? weightPhase : 0) * 800 + _random.nextDouble() * 100;
+      final poidsAvantpied = (weightPhase < 0 ? -weightPhase : 0) * 700 + _random.nextDouble() * 100;
+      final badPosition = _random.nextDouble() < 0.6;
 
       final sample = ShoeSample(
         steps: _steps,
-        angleX: 150 + _random.nextDouble() * 20,
-        angleY: 140 + _random.nextDouble() * 20,
-        badPosition: _random.nextBool(),
+        angleX: angleX,
+        angleY: angleY,
+        badPosition: badPosition,
         timestamp: DateTime.now(),
+        espTimestamp: espTime,
+        distanceM: distanceM,
+        ax: ax,
+        ay: ay,
+        az: az,
+        gx: gx,
+        gy: gy,
+        gz: gz,
+        mag: mag,
+        delta: delta,
+        poidsTalon: poidsTalon,
+        poidsAvantpied: poidsAvantpied,
       );
 
       shoeDataService.addSample(sample);
+      _log('SIM', 'pas=$_steps dist=${distanceM.toStringAsFixed(1)}m talon=${poidsTalon.toStringAsFixed(0)}g avant=${poidsAvantpied.toStringAsFixed(0)}g');
     });
   }
 

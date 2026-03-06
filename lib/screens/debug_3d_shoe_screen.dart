@@ -8,6 +8,9 @@ import 'package:modar/models/ShoeSample.dart';
 import 'package:modar/providers.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+// Chunk size for sending large base64 strings to WebView
+const int _kChunkSize = 50000;
+
 class Debug3dShoeScreen extends ConsumerStatefulWidget {
   const Debug3dShoeScreen({super.key});
 
@@ -32,7 +35,28 @@ class _Debug3dShoeScreenState extends ConsumerState<Debug3dShoeScreen> {
 
   Future<void> _loadHtml() async {
     final html = await rootBundle.loadString('assets/3dshoe.html');
+    final glbBytes = await rootBundle.load('assets/3dshoe.glb');
+    final glbBase64 = base64Encode(glbBytes.buffer.asUint8List());
+
     await _controller.loadHtmlString(html);
+
+    // Wait for page to be ready
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    // Send GLB data in chunks to avoid JavaScript string length limits
+    if (glbBase64.length > _kChunkSize) {
+      await _controller.runJavaScript('window._glbChunks = [];');
+      for (int i = 0; i < glbBase64.length; i += _kChunkSize) {
+        final end = (i + _kChunkSize).clamp(0, glbBase64.length);
+        final chunk = glbBase64.substring(i, end);
+        await _controller.runJavaScript("window._glbChunks.push('$chunk');");
+      }
+      await _controller.runJavaScript('loadGLB(window._glbChunks.join(""));');
+    } else {
+      await _controller.runJavaScript("loadGLB('$glbBase64');");
+    }
+
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -52,14 +76,23 @@ class _Debug3dShoeScreenState extends ConsumerState<Debug3dShoeScreen> {
       'distance_m': sample.distanceM?.toStringAsFixed(2) ?? (sample.steps * 0.70).toStringAsFixed(2),
       'angle_x': sample.angleX,
       'angle_y': sample.angleY,
+      'ax': sample.ax ?? 0.0,
+      'ay': sample.ay ?? 0.0,
+      'az': sample.az ?? 0.0,
       'gx': sample.gx ?? 0.0,
       'gy': sample.gy ?? 0.0,
       'gz': sample.gz ?? 0.0,
       'mag': sample.mag ?? 1.0,
       'delta': sample.delta ?? 0.0,
       'mauvais_positionnement': sample.badPosition,
+      'poids_talon_g': sample.poidsTalon ?? 0.0,
+      'poids_avantpied_g': sample.poidsAvantpied ?? 0.0,
     });
     _controller.runJavaScript("updateShoe('${json.replaceAll("'", "\\'")}')");
+  }
+
+  void _calibrate() {
+    _controller.runJavaScript('calibrate()');
   }
 
   void _toggleSimulation() {
@@ -127,12 +160,26 @@ class _Debug3dShoeScreenState extends ConsumerState<Debug3dShoeScreen> {
           : WebViewWidget(controller: _controller),
       floatingActionButton: _loading
           ? null
-          : FloatingActionButton.extended(
-              onPressed: _toggleSimulation,
-              icon: Icon(_simulating ? Icons.stop : Icons.play_arrow),
-              label: Text(_simulating ? 'Stop' : 'Simuler'),
-              backgroundColor: _simulating ? Colors.red : Colors.green,
-              foregroundColor: Colors.white,
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'calibrate',
+                  onPressed: _calibrate,
+                  backgroundColor: Colors.blueGrey,
+                  foregroundColor: Colors.white,
+                  child: const Icon(Icons.gps_fixed, size: 20),
+                ),
+                const SizedBox(height: 10),
+                FloatingActionButton.extended(
+                  heroTag: 'simulate',
+                  onPressed: _toggleSimulation,
+                  icon: Icon(_simulating ? Icons.stop : Icons.play_arrow),
+                  label: Text(_simulating ? 'Stop' : 'Simuler'),
+                  backgroundColor: _simulating ? Colors.red : Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ],
             ),
     );
   }
